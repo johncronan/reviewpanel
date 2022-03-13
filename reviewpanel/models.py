@@ -17,6 +17,9 @@ class Template(models.Model):
     name = models.SlugField(max_length=32, allow_unicode=True,
                             verbose_name='identifier')
     max_width = models.PositiveIntegerField(default=0)
+    
+    def __str__(self):
+        return self.name
 
 
 class TemplateSection(models.Model):
@@ -31,15 +34,21 @@ class TemplateSection(models.Model):
                                  related_query_name='section')
     name = models.SlugField(max_length=32, allow_unicode=32,
                             verbose_name='identifier')
-    x = models.DecimalField(max_digits=7, decimal_places=3, default=0)
-    y = models.DecimalField(max_digits=7, decimal_places=3, default=0)
-    w = models.DecimalField(max_digits=7, decimal_places=3, default=100)
+    x = models.DecimalField(max_digits=7, decimal_places=3, default='0.000',
+                            verbose_name='left %')
+    y = models.DecimalField(max_digits=7, decimal_places=3, default='0.000',
+                            verbose_name='top %')
+    w = models.DecimalField(max_digits=7, decimal_places=3, default='100.000',
+                            verbose_name='width %')
     h = models.DecimalField(max_digits=7, decimal_places=3,
-                            null=True, blank=True)
+                            null=True, blank=True, verbose_name='height')
     wrap = models.BooleanField(default=True)
     scroll = models.BooleanField(default=True) # vert, or horizontal, if no wrap
     font = models.CharField(max_length=64, blank=True,
                             default='100% sans-serif')
+    
+    def __str__(self):
+        return self.name
 
 
 class Presentation(models.Model):
