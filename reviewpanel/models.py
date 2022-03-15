@@ -68,6 +68,9 @@ class Presentation(models.Model):
                             verbose_name='identifier')
     created = models.DateTimeField(auto_now_add=True)
     
+    def __str__(self):
+        return self.name
+    
 
 class Reference(f_models.RankedModel):
     class Meta:
@@ -99,3 +102,10 @@ class Reference(f_models.RankedModel):
     # if not combined, and no select section specified, it's added to the bottom
     select_section = models.ForeignKey(TemplateSection, models.SET_NULL,
                                        null=True, blank=True, related_name='+')
+    
+    def __str__(self):
+        if self.collection:
+            if self.name: return ' '.join((self.collection, self.name))
+            return self.collection + ' file'
+        if self.field: return ' '.join((self.name, self.field))
+        return self.name
