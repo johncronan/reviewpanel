@@ -15,21 +15,24 @@ class ReferenceForm(AdminJSONForm):
             'collection': 'Leave blank to reference a block.',
             'name': "Name of the block, or of the item field. " \
                     "Leave blank to reference the collection's file.",
-            'select_section': 'If not used, ...'
+            'select_section': 'If a separate section is not used, the ' \
+                              'selector will be added below the content.'
         }
     
     def __init__(self, presentation=None, extra=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        if presentation.template:
-            self.fields['section'].queryset = TemplateSection.objects.filter(
-                template=presentation.template
-            )
-        else: self.fields['section'].queryset = TemplateSection.objects.none()
+        self.presentation = presentation
         
         if extra:
+            # these are set after the instance gets added, when applicable
             self.fields['field'].widget = forms.HiddenInput()
             self.fields['select_section'].widget = forms.HiddenInput()
+        else:
+            if self.instance.combined or not self.instance.collection:
+                self.fields['select_section'].widget = forms.HiddenInput()
+            if not self.instance.collection:
+                self.fields['block_combine'].widget = forms.HiddenInput()
+                self.fields['inline_combine'].widget = forms.HiddenInput()
 
 
 class ReferencesFormSet(forms.models.BaseInlineFormSet):

@@ -109,3 +109,8 @@ class Reference(f_models.RankedModel):
             return self.collection + ' file'
         if self.field: return ' '.join((self.name, self.field))
         return self.name
+    
+    @property
+    def combined(self):
+        if self.block_combine or self.inline_combine: return True
+        return False
