@@ -9,6 +9,7 @@ class ReferenceForm(AdminJSONForm):
         exclude = ('_rank',)
         json_fields = {'options': []}
         labels = {
+            'section': 'template section',
             'select_section': 'section for selector'
         }
         help_texts = {
@@ -25,14 +26,27 @@ class ReferenceForm(AdminJSONForm):
         
         if extra:
             # these are set after the instance gets added, when applicable
-            self.fields['field'].widget = forms.HiddenInput()
-            self.fields['select_section'].widget = forms.HiddenInput()
+            for n in ('field', 'block_combine', 'inline_combine',
+                      'select_section'):
+                self.fields[n].widget = forms.HiddenInput()
         else:
             if self.instance.combined or not self.instance.collection:
                 self.fields['select_section'].widget = forms.HiddenInput()
             if not self.instance.collection:
                 self.fields['block_combine'].widget = forms.HiddenInput()
                 self.fields['inline_combine'].widget = forms.HiddenInput()
+                
+                form = presentation.form
+                try: block = form.blocks.get(name=self.instance.name)
+                except FormBlock.DoesNotExist: return
+                if block.block_type() != 'stock' or not block.stock.composite:
+                    self.fields['field'].widget = forms.HiddenInput()
+                    return
+                
+                self.fields['field'].choices = block.stock.render_choices()
+            else: self.fields['field'].widget = forms.HiddenInput()
+    
+    # TODO: clean method
 
 
 class ReferencesFormSet(forms.models.BaseInlineFormSet):

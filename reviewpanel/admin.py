@@ -34,7 +34,8 @@ class ReferenceInline(admin.StackedInline):
     
     def formfield_for_dbfield(self, db_field, **kwargs):
         field = super().formfield_for_dbfield(db_field, **kwargs)
-        pres = kwargs['request']._obj_
+        pres = kwargs.pop('request')._obj_
+        
         if db_field.name in ('section', 'select_section'):
             if pres.template:
                 field.queryset = field.queryset.filter(template=pres.template)
@@ -45,7 +46,6 @@ class ReferenceInline(admin.StackedInline):
             for b in pres.form.collections():
                 if (b.name, b.name) not in choices:
                     choices.append((b.name, b.name))
-            kwargs.pop('request')
             return forms.ChoiceField(choices=choices, required=False, **kwargs)
         
         elif db_field.name == 'name':
@@ -54,8 +54,10 @@ class ReferenceInline(admin.StackedInline):
             for b in pres.form.collections():
                 for f in b.collection_fields():
                     if (f, f) not in choices: choices.append((f, f))
-            kwargs.pop('request')
             return forms.ChoiceField(choices=choices, required=False, **kwargs)
+        
+        elif db_field.name == 'field':
+            return forms.ChoiceField(choices=(), required=False, **kwargs)
         
         return field
 
