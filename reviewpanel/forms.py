@@ -1,6 +1,7 @@
 from django import forms
 
 from formative.forms import AdminJSONForm
+from formative.models import FormBlock
 from .models import TemplateSection
 
 

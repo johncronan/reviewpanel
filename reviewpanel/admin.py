@@ -3,7 +3,6 @@ from django.contrib import admin
 from functools import partial
 
 from formative.admin import site
-from formative.models import CollectionBlock
 from .forms import ReferencesFormSet, ReferenceForm
 from .models import Template, TemplateSection, Reference, Presentation
 
