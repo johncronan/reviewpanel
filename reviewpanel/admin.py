@@ -4,7 +4,8 @@ from functools import partial
 
 from formative.admin import site
 from .forms import ReferencesFormSet, ReferenceForm
-from .models import Template, TemplateSection, Reference, Presentation
+from .models import Template, TemplateSection, Reference, Presentation, Input, \
+    Cohort, CohortMember
 
 
 class TemplateSectionInline(admin.StackedInline):
@@ -76,3 +77,20 @@ class PresentationAdmin(admin.ModelAdmin):
         for inline in self.get_inline_instances(request, obj):
             if not isinstance(inline, ReferenceInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
+
+
+@admin.register(Input, site=site)
+class InputAdmin(admin.ModelAdmin):
+    list_display = ('name', 'form')
+    exclude = ('_rank',)
+
+
+class CohortMemberInline(admin.TabularInline):
+    model = CohortMember
+    extra = 0
+
+
+@admin.register(Cohort, site=site)
+class CohortAdmin(admin.ModelAdmin):
+    list_display = ('name', 'form')
+    inlines = [CohortMemberInline]
