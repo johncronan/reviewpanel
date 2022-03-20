@@ -5,7 +5,7 @@ from functools import partial
 from formative.admin import site
 from .forms import ReferencesFormSet, ReferenceForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
-    Cohort, CohortMember
+    Panel, Cohort, CohortMember
 
 
 class TemplateSectionInline(admin.StackedInline):
@@ -83,6 +83,11 @@ class PresentationAdmin(admin.ModelAdmin):
 class InputAdmin(admin.ModelAdmin):
     list_display = ('name', 'form')
     exclude = ('_rank',)
+
+
+@admin.register(Panel, site=site)
+class PanelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'program')
 
 
 class CohortMemberInline(admin.TabularInline):

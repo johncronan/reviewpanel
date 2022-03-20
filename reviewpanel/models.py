@@ -1,10 +1,12 @@
 from django.db import models
 from django.db.models import UniqueConstraint
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, \
+    GenericRelation
 from django.utils.translation import gettext_lazy as _
 
-from formative import models as f_models
+from formative.models import Program, Form, RankedModel
 
 
 class Template(models.Model):
@@ -14,9 +16,9 @@ class Template(models.Model):
                              name='unique_program_slug')
         ]
     
-    program = models.ForeignKey(f_models.Program, models.CASCADE,
-                                related_name='programs',
-                                related_query_name='program')
+    program = models.ForeignKey(Program, models.CASCADE,
+                                related_name='templates',
+                                related_query_name='template')
     name = models.SlugField(max_length=32, allow_unicode=True,
                             verbose_name='identifier')
     max_width = models.PositiveIntegerField(default=0)
@@ -60,7 +62,7 @@ class Presentation(models.Model):
             UniqueConstraint(fields=['form', 'name'], name='unique_form_slug')
         ]
     
-    form = models.ForeignKey(f_models.Form, models.CASCADE,
+    form = models.ForeignKey(Form, models.CASCADE,
                              related_name='presentations',
                              related_query_name='presentation')
     template = models.ForeignKey(Template, models.CASCADE,
@@ -75,7 +77,7 @@ class Presentation(models.Model):
         return self.name
     
 
-class Reference(f_models.RankedModel):
+class Reference(RankedModel):
     class Meta:
         constraints = [
             UniqueConstraint(fields=['presentation', '_rank'],
@@ -122,7 +124,7 @@ class Reference(f_models.RankedModel):
         return False
 
 
-class Input(f_models.RankedModel):
+class Input(RankedModel):
     class Meta:
         constraints = [
             UniqueConstraint(fields=['form', '_rank'], name='unique_form_rank'),
@@ -134,7 +136,7 @@ class Input(f_models.RankedModel):
         BOOLEAN = 'bool', _('true/false')
         TEXT = 'text', _('text')
     
-    form = models.ForeignKey(f_models.Form, models.CASCADE,
+    form = models.ForeignKey(Form, models.CASCADE,
                              related_name='inputs', related_query_name='input')
     name = models.SlugField(max_length=32, allow_unicode=True)
     label = models.CharField(max_length=32, blank=True)
@@ -151,6 +153,23 @@ class Input(f_models.RankedModel):
         return Input.objects.filter(form=self.form)
 
 
+class Panel(models.Model):
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['program', 'name'],
+                             name='unique_panel_name')
+        ]
+    
+    program = models.ForeignKey(Program, models.CASCADE, related_name='panels',
+                                related_query_name='panel')
+    name = models.CharField(max_length=50)
+    panelists = models.ManyToManyField(User, related_name='panels',
+                                       related_query_name='panel')
+    
+    def __str__(self):
+        return self.name
+
+
 class Cohort(models.Model):
     class Meta:
         constraints = [
@@ -162,17 +181,22 @@ class Cohort(models.Model):
         ACTIVE = 'active', _('active')
         COMPLETED = 'completed', _('completed')
     
-    form = models.ForeignKey(f_models.Form, models.CASCADE,
+    form = models.ForeignKey(Form, models.CASCADE,
                              related_name='cohorts',
                              related_query_name='cohort')
     name = models.CharField(max_length=50)
     message = models.TextField(blank=True)
-    presentation = models.ForeignKey(Presentation, models.CASCADE,
+    presentation = models.ForeignKey(Presentation, models.SET_NULL,
                                      null=True, blank=True,
                                      related_name='cohorts',
                                      related_query_name='cohort')
+    panel = models.ForeignKey(Panel, models.SET_NULL,
+                               null=True, blank=True,
+                               related_name='cohorts',
+                               related_query_name='cohort')
     status = models.CharField(max_length=16, default=Status.INACTIVE,
                               choices=Status.choices)
+    panel_weight = models.FloatField(default=1.0)
     
     def __str__(self):
         return self.name
@@ -185,7 +209,7 @@ class CohortMember(models.Model):
     member = GenericForeignKey()
     
     def __str__(self):
-        if self.cohort.form.validation_type == f_models.Form.Validation.EMAIL:
+        if self.cohort.form.validation_type == Form.Validation.EMAIL:
             return self.member._email
         
         return self.object_id
