@@ -73,3 +73,8 @@ class ReferencesFormSet(forms.models.BaseInlineFormSet):
         )
         self.add_fields(form, None)
         return form
+
+
+class ScoresForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

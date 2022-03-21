@@ -131,6 +131,8 @@ class Input(RankedModel):
             UniqueConstraint(fields=['form', 'name'], name='unique_input_name')
         ]
     
+    MAX_TEXT_MAXLEN = 1000
+    
     class InputType(models.TextChoices):
         NUMERIC = 'num', _('numeric')
         BOOLEAN = 'bool', _('true/false')
@@ -197,6 +199,8 @@ class Cohort(models.Model):
     status = models.CharField(max_length=16, default=Status.INACTIVE,
                               choices=Status.choices)
     panel_weight = models.FloatField(default=1.0)
+    inputs = models.ManyToManyField(Input, related_name='cohorts',
+                                    related_query_name='cohort')
     
     def __str__(self):
         return self.name
@@ -213,3 +217,25 @@ class CohortMember(models.Model):
             return self.member._email
         
         return self.object_id
+
+
+class Score(models.Model):
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['panelist', 'submission',
+                                     'cohort', 'input'],
+                             name='unique_panelist_submission_cohort_input')
+        ]
+    
+    panelist = models.ForeignKey(User, models.SET_NULL, null=True, blank=True,
+                                 related_name='scores',
+                                 related_query_name='score')
+    form = models.ForeignKey(Form, models.CASCADE, related_name='scores',
+                             related_query_name='score')
+    submission = models.UUIDField()
+    cohort = models.ForeignKey(Cohort, models.CASCADE, related_name='scores',
+                               related_query_name='score')
+    input = models.ForeignKey(Input, models.CASCADE, related_name='scores',
+                              related_query_name='score')
+    value = models.PositiveIntegerField(null=True, blank=True)
+    text = models.CharField(max_length=Input.MAX_TEXT_MAXLEN, blank=True)
