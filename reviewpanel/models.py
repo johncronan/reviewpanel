@@ -75,7 +75,7 @@ class Presentation(models.Model):
     
     def __str__(self):
         return self.name
-    
+
 
 class Reference(RankedModel):
     class Meta:
@@ -167,6 +167,7 @@ class Panel(models.Model):
     name = models.CharField(max_length=50)
     panelists = models.ManyToManyField(User, related_name='panels',
                                        related_query_name='panel')
+    created = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
         return self.name
@@ -201,6 +202,9 @@ class Cohort(models.Model):
     panel_weight = models.FloatField(default=1.0)
     inputs = models.ManyToManyField(Input, related_name='cohorts',
                                     related_query_name='cohort')
+    created = models.DateTimeField(auto_now_add=True)
+    activated = models.DateTimeField(null=True, blank=True, editable=False)
+    completed = models.DateTimeField(null=True, blank=True, editable=False)
     
     def __str__(self):
         return self.name
@@ -247,3 +251,4 @@ class Score(models.Model):
                               related_query_name='score')
     value = models.PositiveIntegerField(null=True, blank=True)
     text = models.CharField(max_length=Input.MAX_TEXT_MAXLEN, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
