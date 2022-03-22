@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import UniqueConstraint
+from django.db.models import UniqueConstraint, Subquery
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, \
@@ -204,7 +204,13 @@ class Cohort(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def members(self):
+        cohort_members = Subquery(self.cohortmember_set.values('object_id'))
+        return self.form.model.objects.filter(pk__in=cohort_members)
 
+
+# TODO last 2 should get mix-in to set content_id from form post-init / pre-save
 
 class CohortMember(models.Model):
     cohort = models.ForeignKey(Cohort, models.CASCADE)
@@ -222,7 +228,7 @@ class CohortMember(models.Model):
 class Score(models.Model):
     class Meta:
         constraints = [
-            UniqueConstraint(fields=['panelist', 'submission',
+            UniqueConstraint(fields=['panelist', 'object_id',
                                      'cohort', 'input'],
                              name='unique_panelist_submission_cohort_input')
         ]
@@ -232,7 +238,9 @@ class Score(models.Model):
                                  related_query_name='score')
     form = models.ForeignKey(Form, models.CASCADE, related_name='scores',
                              related_query_name='score')
-    submission = models.UUIDField()
+    content_type = models.ForeignKey(ContentType, models.CASCADE)
+    object_id = models.UUIDField()
+    submission = GenericForeignKey()
     cohort = models.ForeignKey(Cohort, models.CASCADE, related_name='scores',
                                related_query_name='score')
     input = models.ForeignKey(Input, models.CASCADE, related_name='scores',
