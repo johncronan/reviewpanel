@@ -25,6 +25,7 @@ class SubmissionObjectMixin(generic.detail.SingleObjectMixin):
                                  program__slug=self.kwargs['program_slug'],
                                  slug=self.kwargs['form_slug'])
         
+        form.model, form.item_model
         return form.model.objects.all()
 
 
@@ -64,17 +65,22 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         if score:
             query = Cohort.objects.select_related('presentation__template')
             cohort = query.get(pk=score.cohort_id)
-            presentation = cohort.presentation
-            refs = presentation.references.order_by('_rank')
+            pres = cohort.presentation
+            form, refs = pres.form, pres.references.order_by('_rank')
             names = Subquery(refs.filter(collection='').values('name'))
             cnames = Subquery(refs.exclude(collection='').values('collection'))
-            blocks = presentation.form.blocks.filter(Q(name__in=names) |
-                                                     Q(name__in=cnames))
+            blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
+            
+            items = {}
+            if form.item_model:
+                citems = self.object._items.filter(_collection__in=cnames)
+                items = self.object._collections(queryset=citems, form=form)
+            
             context.update({
-                'cohort': cohort, 'presentation': presentation,
+                'cohort': cohort, 'presentation': pres,
                 'references': refs, 'blocks': { b.name: b for b in blocks },
-                'template': presentation.template,
-                'sections': presentation.template.sections.all()
+                'template': pres.template,
+                'sections': pres.template.sections.all(), 'items': items
             })
         return context
 
