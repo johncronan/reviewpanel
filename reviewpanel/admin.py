@@ -3,9 +3,9 @@ from django.contrib import admin
 from functools import partial
 
 from formative.admin import site
-from formative.models import CollectionBlock
 from .forms import ReferencesFormSet, ReferenceForm
-from .models import Template, TemplateSection, Reference, Presentation
+from .models import Template, TemplateSection, Reference, Presentation, Input, \
+    Panel, Cohort, CohortMember, Score
 
 
 class TemplateSectionInline(admin.StackedInline):
@@ -34,7 +34,8 @@ class ReferenceInline(admin.StackedInline):
     
     def formfield_for_dbfield(self, db_field, **kwargs):
         field = super().formfield_for_dbfield(db_field, **kwargs)
-        pres = kwargs['request']._obj_
+        pres = kwargs.pop('request')._obj_
+        
         if db_field.name in ('section', 'select_section'):
             if pres.template:
                 field.queryset = field.queryset.filter(template=pres.template)
@@ -45,7 +46,6 @@ class ReferenceInline(admin.StackedInline):
             for b in pres.form.collections():
                 if (b.name, b.name) not in choices:
                     choices.append((b.name, b.name))
-            kwargs.pop('request')
             return forms.ChoiceField(choices=choices, required=False, **kwargs)
         
         elif db_field.name == 'name':
@@ -54,8 +54,10 @@ class ReferenceInline(admin.StackedInline):
             for b in pres.form.collections():
                 for f in b.collection_fields():
                     if (f, f) not in choices: choices.append((f, f))
-            kwargs.pop('request')
             return forms.ChoiceField(choices=choices, required=False, **kwargs)
+        
+        elif db_field.name == 'field':
+            return forms.ChoiceField(choices=(), required=False, **kwargs)
         
         return field
 
@@ -75,3 +77,34 @@ class PresentationAdmin(admin.ModelAdmin):
         for inline in self.get_inline_instances(request, obj):
             if not isinstance(inline, ReferenceInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
+
+
+@admin.register(Input, site=site)
+class InputAdmin(admin.ModelAdmin):
+    list_display = ('name', 'form')
+    list_filter = ('form',)
+    exclude = ('_rank',)
+
+
+@admin.register(Panel, site=site)
+class PanelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'program')
+    list_filter = ('program',)
+
+
+class CohortMemberInline(admin.TabularInline):
+    model = CohortMember
+    extra = 0
+
+
+@admin.register(Cohort, site=site)
+class CohortAdmin(admin.ModelAdmin):
+    list_display = ('name', 'panel', 'status', 'form')
+    list_filter = ('panel', 'status', 'form')
+    inlines = [CohortMemberInline]
+
+
+@admin.register(Score, site=site)
+class ScoreAdmin(admin.ModelAdmin):
+    list_display = ('submission', 'panelist', 'input', 'cohort', 'form')
+    list_filter = ('panelist', 'input', 'cohort', 'form')
