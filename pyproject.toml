@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "reviewpanel"
-version = "0.3.0"
+version = "0.3.1"
 description = "Formative plugin for reviewing and scoring applicant submissions"
 authors = ["John Kyle Cronan"]
 license = "LGPL-2.1"
@@ -37,7 +37,6 @@ reviewpanel = "reviewpanel:FormativePluginMeta"
 python = "^3.8"
 "backports.zoneinfo" = { version = "*", python = "~3.8" }
 django = ">=3.1"
-formative = ">=0.8.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
