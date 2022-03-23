@@ -1,0 +1,16 @@
+{% load submission %}
+
+{% for ref in references %}
+  {% if ref.section == section %}
+    {% if ref.block_label %}<p>{{ ref.block_label_html }}</p>{% endif %}
+    
+    <p>
+    {% if not ref.collection %}
+      {% if ref.inline_label %}{{ ref.inline_label_html }}{% endif %}
+      {% dereference ref submission %}
+    {% else %}
+      {# TODO #}
+    {% endif %}
+    </p>
+  {% endif %}
+{% endfor %}

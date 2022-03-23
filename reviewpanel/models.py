@@ -86,7 +86,7 @@ class Reference(RankedModel):
         ordering = ['presentation', '_rank']
     
     presentation = models.ForeignKey(Presentation, models.CASCADE,
-                                     related_name='refereneces',
+                                     related_name='references',
                                      related_query_name='reference')
     # if no collection, name identifies the (stock or custom) block
     collection = models.SlugField(max_length=32, allow_unicode=True, blank=True)
@@ -122,6 +122,12 @@ class Reference(RankedModel):
     def combined(self):
         if self.block_combine or self.inline_combine: return True
         return False
+    
+    def block_label_html(self):
+        return self.block_label # TODO: markdown formatting
+    
+    def inline_label_html(self):
+        return self.inline_label
 
 
 class Input(RankedModel):
@@ -184,8 +190,8 @@ class Cohort(models.Model):
         ACTIVE = 'active', _('active')
         COMPLETED = 'completed', _('completed')
     
-    form = models.ForeignKey(Form, models.CASCADE,
-                             related_name='cohorts',
+    form = models.ForeignKey(Form, models.CASCADE, # could remove and use
+                             related_name='cohorts', # presentation.form?
                              related_query_name='cohort')
     name = models.CharField(max_length=50)
     message = models.TextField(blank=True)

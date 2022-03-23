@@ -106,5 +106,5 @@ class CohortAdmin(admin.ModelAdmin):
 
 @admin.register(Score, site=site)
 class ScoreAdmin(admin.ModelAdmin):
-    list_display = ('panelist', 'submission', 'input', 'cohort', 'form')
+    list_display = ('submission', 'panelist', 'input', 'cohort', 'form')
     list_filter = ('panelist', 'input', 'cohort', 'form')

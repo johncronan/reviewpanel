@@ -105,7 +105,7 @@ class Migration(migrations.Migration):
                 ('options', models.JSONField(blank=True, default=dict)),
                 ('block_combine', models.BooleanField(default=False)),
                 ('inline_combine', models.CharField(blank=True, max_length=16)),
-                ('presentation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='refereneces', related_query_name='reference', to='reviewpanel.presentation')),
+                ('presentation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='references', related_query_name='reference', to='reviewpanel.presentation')),
                 ('section', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='reviewpanel.templatesection')),
                 ('select_section', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='reviewpanel.templatesection')),
             ],
