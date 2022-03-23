@@ -21,6 +21,7 @@ class Template(models.Model):
                                 related_query_name='template')
     name = models.SlugField(max_length=32, allow_unicode=True,
                             verbose_name='identifier')
+    min_width = models.PositiveIntegerField(default=0)
     max_width = models.PositiveIntegerField(default=0)
     
     def __str__(self):
@@ -71,6 +72,8 @@ class Presentation(models.Model):
                                  related_query_name='presentation')
     name = models.SlugField(max_length=32, allow_unicode=True,
                             verbose_name='identifier')
+    no_input = models.BooleanField(default=False)
+    min_seconds = models.PositiveIntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
