@@ -1,0 +1,53 @@
+
+body {
+  font: 100% sans-serif;
+  padding: 0 16px;
+}
+
+div.section {
+  position: absolute;
+  padding-bottom: 16px;
+}
+
+div.section div.content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+div.par {
+  margin-bottom: 16px;
+}
+
+div.block_reference {
+  margin-bottom: 16px;
+}
+
+div.item_reference {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+div.item {
+  display: flex;
+  justify-content: center;
+  max-height: 100%;
+}
+
+img.itemimage {
+  display: inline-block;
+  object-fit: scale-down;
+  max-height: 100%;
+}
+
+div.itemdocument {
+  width: 100%;
+  height: 100%;
+}
+
+object.itemdocument {
+  object-fit: fill;
+  width: 100%;
+  height: 100%;
+}

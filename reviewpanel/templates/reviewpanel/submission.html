@@ -1,15 +1,9 @@
 {% extends "reviewpanel/base.html" %}
+{% load static %}
 
 {% block style %}
+  <link rel="stylesheet" href="{% static "css/submission.css" %}">
   <style>
-    div.par {
-      margin-bottom: 16px;
-    }
-    body {
-      font: 100% sans-serif;
-      padding: 0 16px;
-    }
-    
     div#content {
       position: relative;
       top: 100px;
@@ -18,39 +12,37 @@
       margin: 0 auto;
     }
     
-    div.section {
-      position: absolute;
-      padding-bottom: 16px;
-    }
-    div.section div.content {
-      width: 100%;
-      height: 100%;
-    }
-    
   {% for section in sections %}
     div#section_{{ section.name }} {
     {% if section.font %}font: {{ section.font }};{% endif %}
       padding-top: {{ section.y }}%;
       left: {{ section.x }}%;
       width: {{ section.w }}%;
+    }
+    
+    div#section_{{ section.name }} div.content {
     {% if section.h %}
       aspect-ratio: {{ section.w }}/{{ section.h }};
     {% endif %}
-    }
-  {% if section.scroll or not section.wrap %}
-    div#section_{{ section.name }} div.content {
-    {% if section.scroll %}
+    {% if section.scroll or not section.wrap %}
+      {% if section.scroll %}
       overflow-{% if section.wrap %}y{% else %}x{% endif %}: scroll;
-    {% endif %}
+      {% endif %}
     {% if not section.wrap %}white-space: nowrap;{% endif %}
+    }
     {% if not section.wrap and not section.scroll %}
+    div#section_{{ section.name }} div.content div {
       overflow-x: hidden;
       text-overflow: ellipsis;
-    {% endif %}
     }
+    {% endif %}
   {% endif %}
   {% endfor %}
   </style>
+{% endblock %}
+
+{% block extrajs %}
+  <script src="{% static "js/submission.js" %}"></script>
 {% endblock %}
 
 {% block content %}
