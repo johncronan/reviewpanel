@@ -139,6 +139,7 @@ class Input(RankedModel):
             UniqueConstraint(fields=['form', '_rank'], name='unique_form_rank'),
             UniqueConstraint(fields=['form', 'name'], name='unique_input_name')
         ]
+        ordering = ['form', '_rank']
     
     MAX_TEXT_MAXLEN = 1000
     
@@ -211,6 +212,7 @@ class Cohort(models.Model):
     panel_weight = models.FloatField(default=1.0)
     inputs = models.ManyToManyField(Input, related_name='cohorts',
                                     related_query_name='cohort')
+    allow_skip = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True)
     activated = models.DateTimeField(null=True, blank=True, editable=False)
     completed = models.DateTimeField(null=True, blank=True, editable=False)
