@@ -6,7 +6,8 @@
   {% endif %}
   
   {% if not ref.collection %}
-    <div class="block-reference">
+    <div id="ref_{{ section.name }}_{{ ref.id_string }}"
+         class="block-reference">
       {% if ref.inline_label %}{{ ref.inline_label_html }}{% endif %}
       
       {% dereference_block ref submission %}
@@ -16,10 +17,12 @@
     
     {% for item in collection %}
       {% if not ref.inline_combine %}
-        <div class="item-reference" style="
+        <div id="itemref_{{ ref.id }}_{{ item|underscore:'id' }}"
+             class="ref_{{ section.name }}_{{ ref.id_string }} item-reference"
+             data-ref="{{ ref.id }}" style="
         {% if not ref.combined and not forloop.first %}display: none;{% endif %}
         {% if not section.scroll and not ref.name %}
-          flex-grow: 1; max-height: 100%;
+          flex-grow: 1; min-height: 0;
         {% endif %}">
       {% endif %}
       

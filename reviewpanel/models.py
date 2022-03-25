@@ -130,6 +130,14 @@ class Reference(RankedModel):
         if self.block_combine or self.inline_combine: return True
         return False
     
+    def id_string(self):
+        str = ''
+        if self.collection: str += self.collection + '_'
+        if self.name: str += self.name
+        else: str += 'file'
+        
+        return str
+    
     def block_label_html(self):
         return self.block_label # TODO: markdown formatting
     

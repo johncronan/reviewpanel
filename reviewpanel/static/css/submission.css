@@ -9,8 +9,14 @@ div.section {
   padding-bottom: 16px;
 }
 
-div.section div.content {
+div.section div.wrapper {
+  position: relative;
   width: 100%;
+}
+
+div.section div.wrapper div.content {
+  position: absolute;
+  top: 0; left: 0; right: 0;
   display: flex;
   flex-direction: column;
 }
@@ -19,29 +25,23 @@ div.par {
   margin-bottom: 16px;
 }
 
-div.block-reference {
+div.block-reference,div.item-reference {
   margin-bottom: 16px;
 }
 
 div.item-reference {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 16px;
 }
 
 div.item {
-  display: flex;
-  justify-content: center;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
+}
+
+div.item_image {
 }
 
 img.item_image {
-  display: inline-block;
   object-fit: scale-down;
-  max-height: 100%;
-}
-
-div.item_document {
   width: 100%;
   height: 100%;
 }
@@ -53,10 +53,11 @@ object.item_document {
 }
 
 div.item-selector {
-  height: 80px;
+  height: 100px;
   width: 100%;
   scroll-behavior: smooth;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
   scroll-padding: 0 10px;
@@ -64,8 +65,14 @@ div.item-selector {
 
 div.item-thumbnail {
   display: inline-block;
-  height: 80px;
-  width: 120px;
+  height: 100px;
+  width: 150px;
   scroll-snap-align: center;
   scroll-snap-stop: always;
+}
+
+div.item-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
