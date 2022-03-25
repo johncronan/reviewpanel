@@ -26,9 +26,10 @@
     {% endif %}
     {% if section.scroll or not section.wrap %}
       {% if section.scroll %}
-      overflow-{% if section.wrap %}y{% else %}x{% endif %}: scroll;
+        overflow-{% if section.wrap %}y{% else %}x{% endif %}: scroll;
       {% endif %}
-    {% if not section.wrap %}white-space: nowrap;{% endif %}
+      {% if not section.wrap %}white-space: nowrap;{% endif %}
+    {% endif %}
     }
     {% if not section.wrap and not section.scroll %}
     div#section_{{ section.name }} div.content div {
@@ -36,7 +37,6 @@
       text-overflow: ellipsis;
     }
     {% endif %}
-  {% endif %}
   {% endfor %}
   </style>
 {% endblock %}

@@ -79,8 +79,8 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             context.update({
                 'cohort': cohort, 'presentation': pres,
                 'references': refs, 'blocks': { b.name: b for b in blocks },
-                'template': pres.template,
-                'sections': pres.template.sections.all(), 'items': items
+                'items': items, 'template': pres.template,
+                'sections': pres.template.sections.order_by('-y'),
             })
         return context
 
