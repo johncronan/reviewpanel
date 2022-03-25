@@ -13,8 +13,8 @@
       {% dereference_block ref submission %}
     </div>
   {% else %}
-      {% collection_items items ref.collection as items %}
-      {% for item in items %}
+      {% collection_items items ref.collection as collection %}
+      {% for item in collection %}
         {% if not ref.inline_combine %}
           <div class="item_reference" style="
     {% if not ref.combined and not forloop.first %}display: none;{% endif %}
