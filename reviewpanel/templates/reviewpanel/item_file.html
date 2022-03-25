@@ -1,0 +1,22 @@
+{% with type=meta.type %}
+  {% if not ref.inline_combine %}<div class="item item_{{ type }}">{% endif %}
+  
+  {% if type == 'image' %}
+    <img class="item_image" src="{{ file.url }}">
+  {% elif type == 'video' %}
+    <video class="item_video" controls="controls">
+      <source src="{{ file.url }}">
+      {# TODO caption file #}
+    </video>
+  {% elif type == 'audio' %}
+    <audio class="item_audio" controls="controls">
+      <source src="{{ file.url }}">
+    </audio>
+  {% elif type == 'document' %}
+    <object class="item_document" data="{{ file.url }}" type="application/pdf">
+      Your browser does not support PDF.
+    </object>
+  {% endif %}
+  
+  {% if not ref.inline_combine %}</div>{% endif %}
+{% endwith %}

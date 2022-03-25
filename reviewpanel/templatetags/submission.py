@@ -10,6 +10,7 @@ def collection_items(items, collection):
 @register.simple_tag(takes_context=True)
 def dereference_block(context, ref, submission):
     block_name = ref.name if not ref.collection else ref.collection
+    if not block_name: return ''
     block = context['blocks'][block_name]
     
     if block.block_type() == 'custom': return getattr(submission, block_name)

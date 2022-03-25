@@ -1,0 +1,12 @@
+{% load submission %}
+
+{% collection_items items ref.collection as collection %}
+
+<div class="item-selector">
+  {% for item in collection %}
+    <div class="item-thumbnail">
+      <img src="{{ item.thumbnail_url }}"> {{ i }}{{ forloop.counter0 }}
+      {# TODO: item models without a file #}
+    </div>
+  {% endfor %}
+</div>

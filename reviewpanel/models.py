@@ -139,6 +139,7 @@ class Input(RankedModel):
             UniqueConstraint(fields=['form', '_rank'], name='unique_form_rank'),
             UniqueConstraint(fields=['form', 'name'], name='unique_input_name')
         ]
+        ordering = ['form', '_rank']
     
     MAX_TEXT_MAXLEN = 1000
     
@@ -174,7 +175,7 @@ class Panel(models.Model):
     program = models.ForeignKey(Program, models.CASCADE, related_name='panels',
                                 related_query_name='panel')
     name = models.CharField(max_length=50)
-    panelists = models.ManyToManyField(User, related_name='panels',
+    panelists = models.ManyToManyField(User, blank=True, related_name='panels',
                                        related_query_name='panel')
     created = models.DateTimeField(auto_now_add=True)
     
@@ -209,8 +210,9 @@ class Cohort(models.Model):
     status = models.CharField(max_length=16, default=Status.INACTIVE,
                               choices=Status.choices)
     panel_weight = models.FloatField(default=1.0)
-    inputs = models.ManyToManyField(Input, related_name='cohorts',
+    inputs = models.ManyToManyField(Input, blank=True, related_name='cohorts',
                                     related_query_name='cohort')
+    allow_skip = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True)
     activated = models.DateTimeField(null=True, blank=True, editable=False)
     completed = models.DateTimeField(null=True, blank=True, editable=False)

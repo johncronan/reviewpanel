@@ -12,5 +12,9 @@
 {% block body %}
 <body>
 {% block content %}{% endblock %}
+{% block js %}
+  <script src="{% static "admin/js/vendor/jquery/jquery.min.js" %}"></script>
+  {% block extrajs %}{% endblock %}
+{% endblock %}
 </body>
 {% endblock %}
