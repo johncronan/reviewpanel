@@ -122,6 +122,10 @@ class Reference(RankedModel):
         return Reference.objects.filter(presentation=self.presentation)
     
     @property
+    def is_file(self):
+        return self.collection and not self.name
+    
+    @property
     def combined(self):
         if self.block_combine or self.inline_combine: return True
         return False

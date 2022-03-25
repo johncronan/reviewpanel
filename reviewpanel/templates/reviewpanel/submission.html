@@ -12,7 +12,7 @@
       margin: 0 auto;
     }
     
-  {% for section in sections %}
+  {% for section, refs, selectors in sections %}
     div#section_{{ section.name }} {
     {% if section.font %}font: {{ section.font }};{% endif %}
       padding-top: {{ section.y }}%;
@@ -47,7 +47,7 @@
 
 {% block content %}
 <div id="content">
-  {% for section in sections %}
+  {% for section, references, selectors in sections %}
     <div id="section_{{ section.name }}" class="section"
          style="{{ section.inline_style }}">
       <div class="content">

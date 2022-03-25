@@ -1,7 +1,6 @@
 {% load submission %}
 
 {% for ref in references %}
-{% if ref.section == section %}
   {% if ref.block_label %}
     <div class="par">{{ ref.block_label_html }}</div>
   {% endif %}
@@ -24,7 +23,7 @@
         {% endif %}">
       {% endif %}
       
-      {% if ref.name %}
+      {% if not ref.is_file %}
         {% dereference_item_field ref item %}
         
       {% else %}
@@ -37,14 +36,10 @@
       
       {% if not ref.inline_combine %}</div>{% endif %}
     {% endfor %}
-    
-    {% if not ref.select_section and not ref.combined %}
-      {% include "./item_selector.html" %}
-    {% endif %}
   {% endif %}
 
-{% elif ref.select_section == section and not ref.combined %}
-  {% include "./item_selector.html" %}
-{% endif %}
+{% endfor %}
 
+{% for collection_name, refs in selectors.items %}
+  {% include "./item_selector.html" %}
 {% endfor %}
