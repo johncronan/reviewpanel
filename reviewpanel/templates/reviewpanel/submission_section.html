@@ -1,13 +1,13 @@
 {% load submission %}
 
 {% for ref in references %}
-{% if ref.section == section %}
   {% if ref.block_label %}
     <div class="par">{{ ref.block_label_html }}</div>
   {% endif %}
   
   {% if not ref.collection %}
-    <div class="block-reference">
+    <div id="ref_{{ section.name }}_{{ ref.id_string }}"
+         class="block-reference">
       {% if ref.inline_label %}{{ ref.inline_label_html }}{% endif %}
       
       {% dereference_block ref submission %}
@@ -17,14 +17,16 @@
     
     {% for item in collection %}
       {% if not ref.inline_combine %}
-        <div class="item-reference" style="
+        <div id="itemref_{{ ref.id }}_{{ item|underscore:'id' }}"
+             class="ref_{{ section.name }}_{{ ref.id_string }} item-reference"
+             data-ref="{{ ref.id }}" style="
         {% if not ref.combined and not forloop.first %}display: none;{% endif %}
         {% if not section.scroll and not ref.name %}
-          flex-grow: 1; max-height: 100%;
+          flex-grow: 1; min-height: 0;
         {% endif %}">
       {% endif %}
       
-      {% if ref.name %}
+      {% if not ref.is_file %}
         {% dereference_item_field ref item %}
         
       {% else %}
@@ -37,14 +39,10 @@
       
       {% if not ref.inline_combine %}</div>{% endif %}
     {% endfor %}
-    
-    {% if not ref.select_section and not ref.combined %}
-      {% include "./item_selector.html" %}
-    {% endif %}
   {% endif %}
 
-{% elif ref.select_section == section and not ref.combined %}
-  {% include "./item_selector.html" %}
-{% endif %}
+{% endfor %}
 
+{% for collection_name, refs in selectors.items %}
+  {% include "./item_selector.html" %}
 {% endfor %}

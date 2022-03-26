@@ -23,8 +23,18 @@ def dereference_block(context, ref, submission):
 
 @register.simple_tag
 def dereference_item_field(ref, item):
-    return getattr(item, ref.name)
+    return getattr(item, ref.name) or ''
 
 @register.simple_tag
 def dereference_item_file(item):
     return item._file, item._filemeta
+
+@register.filter
+def join_ids(values, char):
+    return char.join([ str(v.pk) for v in values ])
+
+@register.filter
+def underscore(obj, name):
+    attr = getattr(obj, '_' + name)
+    if callable(attr): return attr()
+    return attr

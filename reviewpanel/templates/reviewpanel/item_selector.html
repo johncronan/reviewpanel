@@ -1,12 +1,25 @@
 {% load submission %}
+{% load static %}
 
-{% collection_items items ref.collection as collection %}
+{% collection_items items collection_name as collection %}
 
-<div class="item-selector">
+<div class="item-selector" data-refs="{{ refs|join_ids:' ' }}">
   {% for item in collection %}
-    <div class="item-thumbnail">
-      <img src="{{ item.thumbnail_url }}"> {{ i }}{{ forloop.counter0 }}
-      {# TODO: item models without a file #}
+    <div class="item-thumbnail" data-id="{{ item|underscore:'id' }}">
+    {% with thumb=item|underscore:'thumbnail_url' %}
+      {% if thumb %}
+        <img src="{{ thumb }}">
+      {% else %}
+        {% with meta=item|underscore:'filemeta' %}
+        {% if meta.type == 'audio' %}
+          <img src="{% static "img/rp_icons/audio.png" %}">
+        {% else %}
+          <img src="{% static "img/rp_icons/generic.png" %}">
+        {% endif %}
+        {% endwith %}
+      {% endif %}
+      {# TODO: item models without a file (look at refs.0) #}
+    {% endwith %}
     </div>
   {% endfor %}
 </div>

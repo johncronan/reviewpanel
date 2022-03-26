@@ -12,7 +12,7 @@
       margin: 0 auto;
     }
     
-  {% for section in sections %}
+  {% for section, refs, selectors in sections %}
     div#section_{{ section.name }} {
     {% if section.font %}font: {{ section.font }};{% endif %}
       padding-top: {{ section.y }}%;
@@ -20,7 +20,7 @@
       width: {{ section.w }}%;
     }
     
-    div#section_{{ section.name }} div.content {
+    div#section_{{ section.name }} div.wrapper {
     {% if section.h %}
       aspect-ratio: {{ section.w }}/{{ section.h }};
     {% endif %}
@@ -31,8 +31,11 @@
       {% if not section.wrap %}white-space: nowrap;{% endif %}
     {% endif %}
     }
+    div#section_{{ section.name }} div.wrapper div.content {
+      {% if section.h %}bottom: 0;{% endif %}
+    }
     {% if not section.wrap and not section.scroll %}
-    div#section_{{ section.name }} div.content div {
+    div#section_{{ section.name }} div.wrapper div.content div {
       overflow-x: hidden;
       text-overflow: ellipsis;
     }
@@ -47,11 +50,13 @@
 
 {% block content %}
 <div id="content">
-  {% for section in sections %}
+  {% for section, references, selectors in sections %}
     <div id="section_{{ section.name }}" class="section"
          style="{{ section.inline_style }}">
-      <div class="content">
-        {% include "./submission_section.html" %}
+      <div class="wrapper">
+        <div class="content">
+          {% include "./submission_section.html" %}
+        </div>
       </div>
     </div>
   {% endfor %}

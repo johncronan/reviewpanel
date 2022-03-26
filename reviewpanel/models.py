@@ -122,9 +122,21 @@ class Reference(RankedModel):
         return Reference.objects.filter(presentation=self.presentation)
     
     @property
+    def is_file(self):
+        return self.collection and not self.name
+    
+    @property
     def combined(self):
         if self.block_combine or self.inline_combine: return True
         return False
+    
+    def id_string(self):
+        str = ''
+        if self.collection: str += self.collection + '_'
+        if self.name: str += self.name
+        else: str += 'file'
+        
+        return str
     
     def block_label_html(self):
         return self.block_label # TODO: markdown formatting

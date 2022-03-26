@@ -62,26 +62,49 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             if score: score.delete() # cohort scored w before, made active again
             score = prev # so delete the assignment and show it as prev scored
         
-        if score:
-            query = Cohort.objects.select_related('presentation__template')
-            cohort = query.get(pk=score.cohort_id)
-            pres = cohort.presentation
-            form, refs = pres.form, pres.references.order_by('_rank')
-            names = Subquery(refs.filter(collection='').values('name'))
-            cnames = Subquery(refs.exclude(collection='').values('collection'))
-            blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
+        if not score: return context
+        
+        query = Cohort.objects.select_related('presentation__template')
+        cohort = query.get(pk=score.cohort_id)
+        pres = cohort.presentation
+        form, references = pres.form, pres.references.order_by('_rank')
+        names = Subquery(references.filter(collection='').values('name'))
+        cnames = Subquery(references.exclude(collection='').values('collection'))
+        blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
+        
+        items = {}
+        if form.item_model:
+            citems = self.object._items.filter(_collection__in=cnames)
+            items = self.object._collections(queryset=citems, form=form)
+        
+        refs, select_refs = {}, {}
+        for ref in references:
+            refs.setdefault(ref.section.name, []).append(ref)
             
-            items = {}
-            if form.item_model:
-                citems = self.object._items.filter(_collection__in=cnames)
-                items = self.object._collections(queryset=citems, form=form)
+            if not ref.collection: continue
+            section = ref.select_section if ref.select_section else ref.section
+            section_refs = select_refs.setdefault(section.name, {})
+            collection = section_refs.setdefault(ref.collection, ([], []))
             
-            context.update({
-                'cohort': cohort, 'presentation': pres,
-                'references': refs, 'blocks': { b.name: b for b in blocks },
-                'items': items, 'template': pres.template,
-                'sections': pres.template.sections.order_by('-y'),
-            })
+            if ref.is_file: collection[0].append(ref)
+            else: collection[1].append(ref)
+            
+        sections = []
+        for section in pres.template.sections.order_by('-y'):
+            selectors = {}
+            # a map from collection to array of refs that want a selector here
+            if section.name in select_refs:
+                selectors = { col: v[0]+v[1]
+                              for col, v in select_refs[section.name].items() }
+            sections.append((section,
+                             refs[section.name] if section.name in refs else [],
+                             selectors))
+        
+        context.update({
+            'cohort': cohort, 'presentation': pres,
+            'blocks': { b.name: b for b in blocks }, 'items': items,
+            'template': pres.template, 'sections': sections
+        })
         return context
 
 
