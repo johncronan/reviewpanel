@@ -1,13 +1,14 @@
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.views import generic
 from django.db.models import Q, Subquery
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.contenttypes.models import ContentType
 
 from formative.models import Form
 from .forms import ScoresForm
-from .models import Cohort, CohortMember, Score
+from .models import Cohort, CohortMember, Score, Input
 
 
 class FormView(generic.RedirectView):
@@ -116,6 +117,60 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
                      generic.FormView):
     template_name = 'reviewpanel/submission.html'
     form_class = ScoresForm
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        
+        self.inputs = self.cohort.inputs.order_by('_rank')
+        kwargs['inputs'] = self.inputs
+        return kwargs
+    
+    def form_invalid(self, form):
+        # shouldn't be possible unless there's form tampering
+        return HttpResponseRedirect(request.get_full_path())
+    
+    def form_valid(self, form):
+        scores = []
+        for i, input in enumerate(self.inputs):
+            args = {'input': input, 'submission': self.submission}
+            python_val, args['text'] = form.cleaned_data[input.name], ''
+            if input.type == Input.InputType.TEXT:
+                args['value'], args['text'] = int(bool(python_val)), python_val
+            else: args['value'] = int(python_val)
+            
+            user = self.request.user
+            if not i:
+                program_form, id = self.cohort.form, self.submission.pk
+                ctype = ContentType.objects.get_for_model(program_form.model)
+                try: score = Score.objects.get(panelist=user, object_id=id,
+                                               content_type=ctype, input=input)
+                except Score.DoesNotExist: return HttpResponseBadRequest()
+                
+                score.value, score.text = args['value'], args['text']
+                score.save()
+                continue
+            elif input.type == Input.InputType.TEXT and not python_val: continue
+            
+            score = Score.objects.create_for_cohort(user, self.cohort, **args)
+            scores.append(score)
+        Score.objects.bulk_create(scores)
+        
+        # if we're in the previously scored submissions TODO
+        
+        # get another random submission to review
+        self.kwargs.pop('pk')
+        return FormView.as_view()(self.request, **self.kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        self.submission = self.get_object()
+        
+        if 'cohort_id' not in request.POST: return HttpResponseBadRequest()
+        # TODO: check that the panelist is reviewing this cohort
+        try: self.cohort = Cohort.objects.get(pk=int(request.POST['cohort_id']),
+                                              status=Cohort.Status.ACTIVE)
+        except ValueError: return HttpResponseBadRequest()
+        
+        return super().post(request, *args, **kwargs)
 
 
 class SubmissionView(generic.View):

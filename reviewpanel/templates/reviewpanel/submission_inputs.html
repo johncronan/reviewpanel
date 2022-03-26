@@ -1,6 +1,8 @@
 
 <div class="inputs">
   <form method="post">{% csrf_token %}
+    <input type="hidden" name="cohort_id" value="{{ cohort.id }}">
+  
   {% for field in form %}
     <div class="input-score">
       {% if field.field.widget.input_type != 'text' %}

@@ -256,6 +256,12 @@ class CohortMember(models.Model):
         return self.object_id
 
 
+class ScoreManager(models.Manager):
+    def create_for_cohort(self, user, cohort, **extra_fields):
+        return self.model(panelist=user, form=cohort.form, cohort=cohort,
+                          **extra_fields)
+
+
 class Score(models.Model):
     class Meta:
         constraints = [
@@ -279,3 +285,5 @@ class Score(models.Model):
     value = models.PositiveIntegerField(null=True, blank=True)
     text = models.CharField(max_length=Input.MAX_TEXT_MAXLEN, blank=True)
     created = models.DateTimeField(auto_now_add=True)
+    
+    objects = ScoreManager()
