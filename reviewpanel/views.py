@@ -66,11 +66,14 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         
         query = Cohort.objects.select_related('presentation__template')
         cohort = query.get(pk=score.cohort_id)
-        pres = cohort.presentation
+        pres, inputs = cohort.presentation, cohort.inputs.order_by('_rank')
         form, references = pres.form, pres.references.order_by('_rank')
         names = Subquery(references.filter(collection='').values('name'))
         cnames = Subquery(references.exclude(collection='').values('collection'))
         blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
+        
+        if score.value: pass # TODO load the prior scores for the correct cohort
+        scores_form = ScoresForm(inputs=inputs)
         
         items = {}
         if form.item_model:
@@ -103,7 +106,8 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         context.update({
             'cohort': cohort, 'presentation': pres,
             'blocks': { b.name: b for b in blocks }, 'items': items,
-            'template': pres.template, 'sections': sections
+            'template': pres.template, 'sections': sections,
+            'inputs_section': pres.inputs_section(), 'form': scores_form
         })
         return context
 

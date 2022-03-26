@@ -1,0 +1,22 @@
+
+<div class="inputs">
+  <form method="post">{% csrf_token %}
+  {% for field in form %}
+    <div class="input-score">
+      {% if field.field.widget.input_type != 'text' %}
+        {{ field.label }}
+      {% endif %}
+      
+      {% if forloop.first and 0 %}
+        
+      {% endif %}
+      
+      {{ field }}
+      
+      {% if forloop.first %}
+        <input type="submit" name="next" value="&#x2192;">
+      {% endif %}
+    </div>
+  {% endfor %}
+  </form>
+</div>

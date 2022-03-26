@@ -78,6 +78,10 @@ class Presentation(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def inputs_section(self):
+        if self.no_input: return None
+        return 'inputs'
 
 
 class Reference(RankedModel):

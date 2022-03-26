@@ -6,7 +6,7 @@
   <style>
     div#content {
       position: relative;
-      top: 100px;
+      top: 80px;
       width: 100%;
     {% if template.max_width %}max-width: {{ template.max_width }}px;{% endif %}
       margin: 0 auto;
@@ -55,7 +55,11 @@
          style="{{ section.inline_style }}">
       <div class="wrapper">
         <div class="content">
-          {% include "./submission_section.html" %}
+          {% if section.name == inputs_section %}
+            {% include "./submission_inputs.html" %}
+          {% else %}
+            {% include "./submission_section.html" %}
+          {% endif %}
         </div>
       </div>
     </div>
