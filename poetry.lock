@@ -155,7 +155,7 @@ dev = ["future (==0.17.1)", "numpy (==1.16.4)", "pytest-mock (==1.10.4)", "pytes
 
 [[package]]
 name = "formative"
-version = "0.8.7"
+version = "0.8.9"
 description = "Self-hosted web app for collecting form responses and files"
 category = "main"
 optional = false
@@ -181,7 +181,7 @@ psycopg2 = "*"
 whitenoise = ">=6.0.0,<7.0.0"
 
 [package.extras]
-reviewpanel = ["reviewpanel (>=0.3.1,<0.4.0)"]
+reviewpanel = ["reviewpanel (>=0.3.5,<0.4.0)"]
 
 [[package]]
 name = "future"
@@ -428,7 +428,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "f3d82015dcca1a7c96dfca9f48f224561cfe641643485ba4f341376451494bd2"
+content-hash = "3c87cfc3e68b784803a6a5905b418b434038d5eb1a2eb30e27663a39d1b4ab97"
 
 [metadata.files]
 asgiref = [
@@ -502,8 +502,8 @@ ffmpeg-python = [
     {file = "ffmpeg_python-0.2.0-py3-none-any.whl", hash = "sha256:ac441a0404e053f8b6a1113a77c0f452f1cfc62f6344a769475ffdc0f56c23c5"},
 ]
 formative = [
-    {file = "formative-0.8.7-py3-none-any.whl", hash = "sha256:45b5b7f76042075b6da8a9a44afa909c7a22022a74eb974e473dfe4623119726"},
-    {file = "formative-0.8.7.tar.gz", hash = "sha256:804097ada49c721df9c293882808b3a554b4908115138dade835ec2a71ff50ff"},
+    {file = "formative-0.8.9-py3-none-any.whl", hash = "sha256:c40a4f4d2908ec4ce4e8b1a91306c34efd0645cdef252b5dfefe6e5281269b42"},
+    {file = "formative-0.8.9.tar.gz", hash = "sha256:d9658e64c736b02357287752d2b64c8c38eb4006df2fa331f181dcb858ebaba8"},
 ]
 future = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},

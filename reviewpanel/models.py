@@ -49,7 +49,7 @@ class TemplateSection(models.Model):
     h = models.DecimalField(max_digits=7, decimal_places=3,
                             null=True, blank=True, verbose_name='height')
     wrap = models.BooleanField(default=True)
-    scroll = models.BooleanField(default=True) # vert, or horizontal, if no wrap
+    scroll = models.BooleanField(default=False) # vert, or horizontal if no wrap
     font = models.CharField(max_length=64, blank=True,
                             default='100% sans-serif')
     
