@@ -2,7 +2,7 @@ from django import forms
 
 from formative.forms import AdminJSONForm
 from formative.models import FormBlock
-from .models import TemplateSection
+from .models import TemplateSection, Input
 
 
 class ReferenceForm(AdminJSONForm):
@@ -76,5 +76,20 @@ class ReferencesFormSet(forms.models.BaseInlineFormSet):
 
 
 class ScoresForm(forms.Form):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, inputs=None, *args, **kwargs):
+        self.inputs = inputs
         super().__init__(*args, **kwargs)
+        
+        for input in inputs:
+            if input.type == Input.InputType.NUMERIC:
+                field = forms.IntegerField(min_value=input.min_num,
+                                           max_value=input.max_num)
+            elif input.type == Input.InputType.BOOLEAN:
+                field = forms.BooleanField()
+            else:
+                field = forms.CharField(max_length=input.max_chars)
+                field.widget.attrs['placeholder'] = input.label
+                if not input.min_num: field.required = False
+            
+            field.label = input.label
+            self.fields[input.name] = field

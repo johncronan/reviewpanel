@@ -55,6 +55,7 @@ object.item_document {
 div.item-selector {
   height: 100px;
   width: 100%;
+  white-space: nowrap;
   scroll-behavior: smooth;
   overflow-x: auto;
   overflow-y: hidden;

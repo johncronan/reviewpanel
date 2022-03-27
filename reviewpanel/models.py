@@ -49,7 +49,7 @@ class TemplateSection(models.Model):
     h = models.DecimalField(max_digits=7, decimal_places=3,
                             null=True, blank=True, verbose_name='height')
     wrap = models.BooleanField(default=True)
-    scroll = models.BooleanField(default=True) # vert, or horizontal, if no wrap
+    scroll = models.BooleanField(default=False) # vert, or horizontal if no wrap
     font = models.CharField(max_length=64, blank=True,
                             default='100% sans-serif')
     
@@ -78,6 +78,10 @@ class Presentation(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def inputs_section(self):
+        if self.no_input: return None
+        return 'inputs'
 
 
 class Reference(RankedModel):
@@ -221,6 +225,7 @@ class Cohort(models.Model):
                                related_query_name='cohort')
     status = models.CharField(max_length=16, default=Status.INACTIVE,
                               choices=Status.choices)
+    size = models.PositiveIntegerField(default=0, editable=False)
     panel_weight = models.FloatField(default=1.0)
     inputs = models.ManyToManyField(Input, blank=True, related_name='cohorts',
                                     related_query_name='cohort')
@@ -252,6 +257,12 @@ class CohortMember(models.Model):
         return self.object_id
 
 
+class ScoreManager(models.Manager):
+    def create_for_cohort(self, user, cohort, **extra_fields):
+        return self.model(panelist=user, form=cohort.form, cohort=cohort,
+                          **extra_fields)
+
+
 class Score(models.Model):
     class Meta:
         constraints = [
@@ -275,3 +286,5 @@ class Score(models.Model):
     value = models.PositiveIntegerField(null=True, blank=True)
     text = models.CharField(max_length=Input.MAX_TEXT_MAXLEN, blank=True)
     created = models.DateTimeField(auto_now_add=True)
+    
+    objects = ScoreManager()
