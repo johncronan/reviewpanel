@@ -288,3 +288,10 @@ class Score(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     
     objects = ScoreManager()
+    
+    def __str__(self):
+        name = f'{self.panelist.username} {self.input.name} '
+        if self.value is None: return name + 'placeholder'
+        elif not self.value: return name + 'skip'
+        elif self.input.type == Input.InputType.TEXT: return name + 'score'
+        return name + f'score={self.value}'
