@@ -1,6 +1,7 @@
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.views import generic
 from django.db.models import F, Q, Count, Exists, Subquery, OuterRef
+from django.db.models.functions import Coalesce
 from django.db.models.lookups import Exact
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
@@ -85,12 +86,12 @@ class FormView(generic.RedirectView, LoginRequiredMixin,
         
         app_scores = scores.filter(object_id=OuterRef('object_id'))
         app_counts = app_scores.values('object_id').annotate(count=Count('*'))
-        members = cohort.cohortmember_set
+        counts, members = app_counts.values('count'), cohort.cohortmember_set
         unscored = members.exclude(object_id__in=Subquery(cohort_scored))
-        apps = unscored.annotate(scores=Subquery(app_counts.values('count')),
+        apps = unscored.annotate(scores=Coalesce(Subquery(counts), 0),
                                  put_first=Exact(F('object_id'), unscored_id))
         chosen, first = None, None
-        for member in apps.order_by('put_first', 'scores', '?')[:2]:
+        for member in apps.order_by('-put_first', 'scores', '?')[:2]:
             if member.put_first:
                 first = member
                 continue
