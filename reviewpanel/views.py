@@ -14,7 +14,7 @@ from .forms import ScoresForm
 from .models import Cohort, CohortMember, Score, Input
 
 
-class FormView(generic.RedirectView, LoginRequiredMixin,
+class FormView(LoginRequiredMixin, generic.RedirectView,
                generic.detail.SingleObjectMixin):
     permanent = False
     slug_url_kwarg = 'form_slug'
