@@ -1,6 +1,7 @@
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.views import generic
-from django.db.models import Q, Subquery
+from django.db.models import F, Q, Count, Exists, Subquery, OuterRef
+from django.db.models.lookups import Exact
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,11 +12,85 @@ from .forms import ScoresForm
 from .models import Cohort, CohortMember, Score, Input
 
 
-class FormView(generic.RedirectView):
+class FormView(generic.RedirectView, LoginRequiredMixin,
+               generic.detail.SingleObjectMixin):
     permanent = False
+    slug_url_kwarg = 'form_slug'
+    
+    def get_queryset(self):
+        return Form.objects.filter(program__slug=self.kwargs['program_slug'])
+    
+    def panelist_cohorts(self, user):
+        # find the cohorts with unseen apps reviewed by panels this user is on
+        cohorts = Cohort.objects.filter(status=Cohort.Status.ACTIVE,
+                                        form=self.object, panel__panelists=user)
+        
+        members_subq = CohortMember.objects.filter(cohort=OuterRef('pk'))
+        
+        # subquery to find a unique cohort for each applicant (overlap possible)
+        q = cohorts.filter(cohortmember__object_id=OuterRef('object_id'))
+        app_cohort = Subquery(q.order_by('size', '-created').values('pk')[:1])
+        apps = members_subq.annotate(app_cohort=app_cohort)
+        
+        # annotate cohorts with whether there's app w/ no input for that cohort
+        app_cohort_score_subsubq = Score.objects.exclude(value=None).filter(
+            panelist=user, content_type=OuterRef('content_type'),
+            object_id=OuterRef('object_id'), cohort=OuterRef('app_cohort')
+        )
+        unscored_subq = apps.exclude(Exists(app_cohort_score_subsubq))
+        return cohorts.filter(Exists(unscored_subq))
     
     def get_redirect_url(self, *args, **kwargs):
-        return None # TODO
+        self.object = self.get_object()
+        form, user = self.object, self.request.user
+        
+        cohorts = self.panelist_cohorts(user)
+        
+        ctype = ContentType.objects.get_for_model(form.model)
+        unscored = None
+        try: unscored = Score.objects.get(panelist=user, content_type=ctype,
+                                          cohort__in=cohorts, value=None)
+        except Score.DoesNotExist: pass
+        
+        if unscored: cohort, unscored_id = unscored.cohort, unscored.object_id
+        else:
+            if not cohorts:
+                url = reverse('plugins:reviewpanel:form_complete',
+                              kwargs=kwargs)
+                return HttpResponseRedirect(url)
+            
+            unscored_id = None
+            cohort = cohorts[0] # TODO random choice according to panel_weight
+        
+        input = cohort.inputs.order_by('_rank')[0]
+        scores = Score.objects.filter(value__gt=0,
+                                      form=cohort.form, input=input)
+        user_scored = Score.objects.exclude(value=None).filter(panelist=user)
+        cohort_scored = user_scored.filter(cohort=cohort).values('object_id')
+        
+        app_scores = scores.filter(object_id=OuterRef('object_id'))
+        app_counts = app_scores.values('object_id').annotate(count=Count('*'))
+        members = cohort.cohortmember_set
+        unscored = members.exclude(object_id__in=Subquery(cohort_scored))
+        apps = unscored.annotate(scores=Subquery(app_counts.values('count')),
+                                 put_first=Exact(F('object_id'), unscored_id))
+        chosen, first = None, None
+        for member in apps.order_by('put_first', 'scores', '?')[:2]:
+            if member.put_first:
+                first = member
+                continue
+            lowest_count = member.scores
+            if first and unscored:
+                if first.scores <= lowest_count: chosen = first
+                else: unscored.delete() # panelist waited; it will come up later
+            if not chosen: chosen = member
+        if not chosen: chosen = first
+        
+        score = Score.objects.create_for_cohort(user, cohort, input=input,
+                                                submission=chosen.member)
+        if chosen != first: score.save()
+        kwargs['pk'] = str(chosen.object_id)
+        return reverse('plugins:reviewpanel:submission', kwargs=kwargs)
 
 
 class SubmissionObjectMixin(generic.detail.SingleObjectMixin):

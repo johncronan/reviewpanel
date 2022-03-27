@@ -225,6 +225,7 @@ class Cohort(models.Model):
                                related_query_name='cohort')
     status = models.CharField(max_length=16, default=Status.INACTIVE,
                               choices=Status.choices)
+    size = models.PositiveIntegerField(default=0, editable=False)
     panel_weight = models.FloatField(default=1.0)
     inputs = models.ManyToManyField(Input, blank=True, related_name='cohorts',
                                     related_query_name='cohort')
