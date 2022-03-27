@@ -76,16 +76,18 @@ class ReferencesFormSet(forms.models.BaseInlineFormSet):
 
 
 class ScoresForm(forms.Form):
-    def __init__(self, inputs=None, *args, **kwargs):
-        self.inputs = inputs
+    def __init__(self, inputs=None, allow_skip=False, *args, **kwargs):
+        self.inputs, self.allow_skip = inputs, allow_skip
         super().__init__(*args, **kwargs)
         
-        for input in inputs:
+        for i, input in enumerate(inputs):
             if input.type == Input.InputType.NUMERIC:
                 field = forms.IntegerField(min_value=input.min_num,
                                            max_value=input.max_num)
+                if allow_skip or i: field.required = False
             elif input.type == Input.InputType.BOOLEAN:
                 field = forms.BooleanField()
+                if allow_skip or i: field.required = False
             else:
                 field = forms.CharField(max_length=input.max_chars)
                 field.widget.attrs['placeholder'] = input.label
@@ -93,3 +95,14 @@ class ScoresForm(forms.Form):
             
             field.label = input.label
             self.fields[input.name] = field
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        if not self.allow_skip: return
+        
+        for input in self.inputs:
+            val = cleaned_data.get(input.name, None)
+            if not val and input.type != Input.InputType.TEXT:
+                cleaned_data[input.name] = 0 # zero for skipped
+        
+        return cleaned_data

@@ -104,7 +104,20 @@ class CohortAdmin(admin.ModelAdmin):
     inlines = [CohortMemberInline]
 
 
+class ScoreTypeFilter(admin.SimpleListFilter):
+    title = 'value'
+    parameter_name = 'value'
+    
+    def lookups(self, request, model_admin):
+        return (('yes', 'scored'), ('skip', 'skipped'), ('no', 'unscored'))
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'yes': return queryset.filter(value__gt=0)
+        elif self.value() == 'skip': return queryset.filter(value=0)
+        elif self.value() == 'no': return queryset.filter(value__isnull=True)
+
+
 @admin.register(Score, site=site)
 class ScoreAdmin(admin.ModelAdmin):
     list_display = ('submission', 'panelist', 'input', 'cohort', 'form')
-    list_filter = ('panelist', 'input', 'cohort', 'form')
+    list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)

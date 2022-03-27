@@ -13,7 +13,8 @@ def dereference_block(context, ref, submission):
     if not block_name: return ''
     block = context['blocks'][block_name]
     
-    if block.block_type() == 'custom': return getattr(submission, block_name)
+    if block.block_type() == 'custom':
+        return getattr(submission, block_name) or ''
     elif block.block_type() == 'stock':
         stock = block.stock
         values = { n: getattr(submission, stock.field_name(n))

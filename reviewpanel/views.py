@@ -165,7 +165,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
         
         if score.value: pass # TODO load the prior scores for the correct cohort
-        scores_form = ScoresForm(inputs=inputs)
+        scores_form = ScoresForm(inputs=inputs, allow_skip=cohort.allow_skip)
         
         items = {}
         if form.item_model:
@@ -213,7 +213,7 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
         kwargs = super().get_form_kwargs()
         
         self.inputs = self.cohort.inputs.order_by('_rank')
-        kwargs['inputs'] = self.inputs
+        kwargs.update(inputs=self.inputs, allow_skip=self.cohort.allow_skip)
         return kwargs
     
     def form_invalid(self, form):
