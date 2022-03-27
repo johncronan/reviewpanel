@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
+from random import random
 
 from formative.models import Form
 from .forms import ScoresForm
@@ -40,6 +41,21 @@ class FormView(generic.RedirectView, LoginRequiredMixin,
         unscored_subq = apps.exclude(Exists(app_cohort_score_subsubq))
         return cohorts.filter(Exists(unscored_subq))
     
+    def choose_panel(self, user, cohorts):
+        total, weights = 0, {}
+        for cohort in cohorts.annotate(weight=F('panel_weight') * F('size')):
+            weights[cohort] = cohort.weight
+            total += cohort.weight
+        if not weights: return None
+        if not total:
+            weights, total = { cohort: 1 for cohort in weights }, len(weights)
+        
+        r, v = random(), 0
+        for cohort, weight in weights.items():
+            v += weight / total
+            if r < v: return cohort
+        return cohort
+    
     def get_redirect_url(self, *args, **kwargs):
         self.object = self.get_object()
         form, user = self.object, self.request.user
@@ -54,13 +70,12 @@ class FormView(generic.RedirectView, LoginRequiredMixin,
         
         if unscored: cohort, unscored_id = unscored.cohort, unscored.object_id
         else:
-            if not cohorts:
+            cohort = self.choose_panel(user, cohorts)
+            if not cohort:
                 url = reverse('plugins:reviewpanel:form_complete',
                               kwargs=kwargs)
                 return HttpResponseRedirect(url)
-            
             unscored_id = None
-            cohort = cohorts[0] # TODO random choice according to panel_weight
         
         input = cohort.inputs.order_by('_rank')[0]
         scores = Score.objects.filter(value__gt=0,
