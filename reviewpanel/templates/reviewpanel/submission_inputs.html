@@ -4,19 +4,19 @@
     <input type="hidden" name="cohort_id" value="{{ cohort.id }}">
   
   {% for field in form %}
-    <div class="input-score">
+    <div class="input-score{% if forloop.first %} input-primary{% endif %}">
+      {% if forloop.first %}
+        <div>{% if 0 %} {# TODO #} {% endif %}</div>
+      {% endif %}
+
       {% if field.field.widget.input_type != 'text' %}
-        {{ field.label }}
+        <div>{{ field.label }}</div>
       {% endif %}
       
-      {% if forloop.first and 0 %}
-        
-      {% endif %}
-      
-      {{ field }}
+      <div>{{ field }}</div>
       
       {% if forloop.first %}
-        <input type="submit" name="next" value="&#x2192;">
+        <div><input type="submit" name="next" value="&#x2192;"></div>
       {% endif %}
     </div>
   {% endfor %}

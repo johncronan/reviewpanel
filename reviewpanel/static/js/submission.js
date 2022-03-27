@@ -1,6 +1,5 @@
 
 function show(ref_id, item_id) {
-  console.log(ref_id, item_id);
   let id = "itemref_" + ref_id + "_" + item_id;
   let itemref = document.getElementById(id);
   let section = itemref.parentElement;
@@ -8,7 +7,7 @@ function show(ref_id, item_id) {
          .forEach(r => {
     if (r.dataset.ref == ref_id) r.style.display = 'none';
   });
-  itemref.style.display = 'block';
+  itemref.style.display = 'flex';
 }
 
 function selectorClick(event) {
