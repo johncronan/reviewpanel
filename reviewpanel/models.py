@@ -242,13 +242,13 @@ class Cohort(models.Model):
         return self.form.model.objects.filter(pk__in=cohort_members)
 
 
-# TODO last 2 should get mix-in to set content_id from form post-init / pre-save
-
 class CohortMember(models.Model):
     cohort = models.ForeignKey(Cohort, models.CASCADE)
     content_type = models.ForeignKey(ContentType, models.CASCADE)
     object_id = models.UUIDField()
     member = GenericForeignKey()
+    
+    # TODO for admin: set content_id from form post-init / pre-save
     
     def __str__(self):
         if self.cohort.form.validation_type == Form.Validation.EMAIL:
