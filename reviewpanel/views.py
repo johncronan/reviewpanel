@@ -14,7 +14,7 @@ from .forms import ScoresForm
 from .models import Cohort, CohortMember, Score, Input
 
 
-class FormView(generic.RedirectView, LoginRequiredMixin,
+class FormView(LoginRequiredMixin, generic.RedirectView,
                generic.detail.SingleObjectMixin):
     permanent = False
     slug_url_kwarg = 'form_slug'
@@ -127,7 +127,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
     
     def render_to_response(self, context, **kwargs):
         user = self.request.user
-        entries = CohortMember.objects.filter(object_id=self.object._id,
+        entries = CohortMember.objects.filter(object_id=self.object.pk,
                                               cohort__panel__panelists=user)
         if not entries.exclude(cohort__status=Cohort.Status.INACTIVE).exists():
             return self.handle_no_permission()
@@ -143,11 +143,11 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         context = super().get_context_data(**kwargs)
         score, prev, user = None, None, self.request.user
         
-        query = Score.objects.filter(object_id=self.object._id, panelist=user)
-        try: score = query.get(value=None) # placeholder for an assigned member
+        scores = Score.objects.filter(object_id=self.object.pk, panelist=user)
+        try: score = scores.get(value=None) # placeholder for an assigned member
         except Score.DoesNotExist: pass
         
-        query = query.filter(cohort__status=Cohort.Status.ACTIVE)
+        query = scores.filter(cohort__status=Cohort.Status.ACTIVE)
         try: prev = query.exclude(value=None).order_by('-created')[:1].get()
         except Score.DoesNotExist: pass
         if prev or (score and score.cohort.status != Cohort.Status.ACTIVE):
@@ -164,9 +164,14 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         cnames = Subquery(references.exclude(collection='').values('collection'))
         blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
         
-        if score.value: pass # TODO load the prior scores for the correct cohort
-        scores_form = ScoresForm(inputs=inputs, allow_skip=cohort.allow_skip)
-        
+        initial = {}
+        if score.value is not None:
+            for score in scores.select_related('input').filter(cohort=cohort):
+                val = score.value
+                if score.input.type == Input.InputType.TEXT: val = score.text
+                if val: initial[score.input.name] = val
+        scores_form = ScoresForm(inputs=inputs, allow_skip=cohort.allow_skip,
+                                 initial=initial)
         items = {}
         if form.item_model:
             citems = self.object._items.filter(_collection__in=cnames)
@@ -223,28 +228,26 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
     def form_valid(self, form):
         scores = []
         for i, input in enumerate(self.inputs):
-            args = {'input': input, 'submission': self.submission}
+            user, program_form = self.request.user, self.cohort.form
+            ctype = ContentType.objects.get_for_model(program_form.model)
+            args = {'content_type': ctype, 'form': program_form}
             python_val, args['text'] = form.cleaned_data[input.name], ''
             if input.type == Input.InputType.TEXT:
                 args['value'], args['text'] = int(bool(python_val)), python_val
             else: args['value'] = int(python_val)
             
-            user = self.request.user
+            kwargs = {'panelist': user, 'object_id': self.submission.pk,
+                      'cohort': self.cohort, 'input': input}
             if not i:
                 program_form, id = self.cohort.form, self.submission.pk
-                ctype = ContentType.objects.get_for_model(program_form.model)
-                try: score = Score.objects.get(panelist=user, object_id=id,
-                                               content_type=ctype, input=input)
+                try: score = Score.objects.get(**kwargs)
                 except Score.DoesNotExist: return HttpResponseBadRequest()
                 
                 score.value, score.text = args['value'], args['text']
                 score.save()
-                continue
-            elif input.type == Input.InputType.TEXT and not python_val: continue
-            
-            score = Score.objects.create_for_cohort(user, self.cohort, **args)
-            scores.append(score)
-        Score.objects.bulk_create(scores)
+            elif input.type == Input.InputType.TEXT and not python_val:
+                Score.objects.filter(**kwargs).delete()
+            else: Score.objects.update_or_create(defaults=args, **kwargs)
         
         # if we're in the previously scored submissions TODO
         

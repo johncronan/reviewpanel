@@ -21,3 +21,18 @@ function selectorClick(event) {
 
 document.querySelectorAll('.item-thumbnail')
         .forEach(thumb => thumb.onclick = selectorClick);
+
+function showModal(event) {
+  let img = event.target;
+  let modal = document.getElementById("modal");
+  let target = modal.querySelector('img');
+  modal.style.display = "block";
+  target.src = img.src;
+}
+
+document.querySelectorAll('img.item_image')
+        .forEach(img => img.onclick = showModal);
+
+document.querySelector('img.modal-content').onclick = (event) => {
+  document.getElementById("modal").style.display = "none";
+};
