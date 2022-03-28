@@ -127,7 +127,6 @@ class ScoreAdmin(admin.ModelAdmin):
     list_display = ('submission', 'panelist', 'input', 'cohort', 'display_val',
                     'created')
     list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)
-    readonly_fields = ('display_val',)
     
     @admin.display(ordering='value', description='value')
     def display_val(self, obj):
