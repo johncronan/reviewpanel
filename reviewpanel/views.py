@@ -142,6 +142,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         score, prev, user = None, None, self.request.user
+        prev_on, next_on = False, False
         
         scores = Score.objects.filter(object_id=self.object.pk, panelist=user)
         try: score = scores.get(value=None) # placeholder for an assigned member
@@ -150,11 +151,19 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         query = scores.filter(cohort__status=Cohort.Status.ACTIVE)
         try: prev = query.exclude(value=None).order_by('-created')[:1].get()
         except Score.DoesNotExist: pass
-        if prev or (score and score.cohort.status != Cohort.Status.ACTIVE):
-            if score: score.delete() # cohort scored w before, made active again
-            score = prev # so delete the assignment and show it as prev scored
-        
-        if not score: return context
+
+        if score and score.cohort.status != Cohort.Status.ACTIVE:
+            score.delete()
+            return context
+        if prev and score: # cohort scored w before, made active again
+            score.delete() # so delete the assignment and show it as prev scored
+        if prev:
+            score = prev
+            qs = Score.objects.filter(panelist=user, form=score.form)
+            prior = qs.filter(Q(created__lt=score.created) |
+                             Q(created=score.created) & Q(id__lt=score.id))
+            prev_on, next_on = prior.exists(), True
+        if not score: return context # TODO: allow link sharing option
         
         query = Cohort.objects.select_related('presentation__template')
         cohort = query.get(pk=score.cohort_id)
@@ -182,6 +191,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             refs.setdefault(ref.section.name, []).append(ref)
             
             if not ref.collection: continue
+            if ref.collection not in items: items[ref.collection] = []
             section = ref.select_section if ref.select_section else ref.section
             section_refs = select_refs.setdefault(section.name, {})
             collection = section_refs.setdefault(ref.collection, ([], []))
@@ -204,7 +214,8 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             'cohort': cohort, 'presentation': pres,
             'blocks': { b.name: b for b in blocks }, 'items': items,
             'template': pres.template, 'sections': sections,
-            'inputs_section': pres.inputs_section(), 'form': scores_form
+            'inputs_section': pres.inputs_section(), 'form': scores_form,
+            'prev_on': prev_on, 'next_on': next_on
         })
         return context
 
@@ -225,10 +236,20 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
         # shouldn't be possible unless there's form tampering
         return HttpResponseRedirect(request.get_full_path())
     
+    def navigate_history(self, queryset, score, prev=False):
+        qs = queryset
+        if prev: qs = qs.filter(Q(created__lt=score.created) |
+                                Q(created=score.created) & Q(id__lt=score.id))
+        else: qs = qs.filter(Q(created__gt=score.created) |
+                             Q(created=score.created) & Q(id__gt=score.id))
+        try: return qs[0]
+        except IndexError: return None
+    
     def form_valid(self, form):
-        scores = []
+        user, program_form = self.request.user, self.cohort.form
+        
+        score = None
         for i, input in enumerate(self.inputs):
-            user, program_form = self.request.user, self.cohort.form
             ctype = ContentType.objects.get_for_model(program_form.model)
             args = {'content_type': ctype, 'form': program_form}
             python_val, args['text'] = form.cleaned_data[input.name], ''
@@ -249,7 +270,19 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
                 Score.objects.filter(**kwargs).delete()
             else: Score.objects.update_or_create(defaults=args, **kwargs)
         
-        # if we're in the previously scored submissions TODO
+        request = self.request
+        if 'prev_scored' in request.POST or 'next_scored' in request.POST:
+            qs = Score.objects.filter(panelist=user, form=program_form)
+            previous = 'prev_scored' in request.POST
+            target = self.navigate_history(qs, score, prev=previous)
+            prefix = 'plugins:reviewpanel:'
+            if not target:
+                self.kwargs.pop('pk')
+                url = reverse(prefix + 'form_index', kwargs=self.kwargs)
+            else:
+                self.kwargs['pk'] = target.object_id
+                url = reverse(prefix + 'submission', kwargs=self.kwargs)
+            return HttpResponseRedirect(url)
         
         # get another random submission to review
         self.kwargs.pop('pk')

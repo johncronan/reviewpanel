@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.contrib import admin
 from functools import partial
 
@@ -112,12 +113,26 @@ class ScoreTypeFilter(admin.SimpleListFilter):
         return (('yes', 'scored'), ('skip', 'skipped'), ('no', 'unscored'))
     
     def queryset(self, request, queryset):
-        if self.value() == 'yes': return queryset.filter(value__gt=0)
-        elif self.value() == 'skip': return queryset.filter(value=0)
+        bool_type = Input.InputType.BOOLEAN
+        if self.value() == 'yes':
+            return queryset.filter(Q(value__gt=0) |
+                                   Q(value=0) & Q(input__type=bool_type))
+        elif self.value() == 'skip':
+            return queryset.filter(value=0).exclude(input__type=bool_type)
         elif self.value() == 'no': return queryset.filter(value__isnull=True)
 
 
 @admin.register(Score, site=site)
 class ScoreAdmin(admin.ModelAdmin):
-    list_display = ('submission', 'panelist', 'input', 'cohort', 'form')
+    list_display = ('submission', 'panelist', 'input', 'cohort', 'display_val',
+                    'created')
     list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)
+    readonly_fields = ('display_val',)
+    
+    @admin.display(ordering='value', description='value')
+    def display_val(self, obj):
+        if obj.input.type == Input.InputType.TEXT: return obj.text
+        if obj.value is None: return '[unscored]'
+        if obj.input.type == Input.InputType.BOOLEAN: return bool(obj.value)
+        if not obj.value: return '[skipped]'
+        return obj.value
