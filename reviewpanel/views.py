@@ -87,9 +87,9 @@ class FormView(LoginRequiredMixin, generic.RedirectView,
         app_scores = scores.filter(object_id=OuterRef('object_id'))
         app_counts = app_scores.values('object_id').annotate(count=Count('*'))
         counts, members = app_counts.values('count'), cohort.cohortmember_set
-        unscored = members.exclude(object_id__in=Subquery(cohort_scored))
-        apps = unscored.annotate(scores=Coalesce(Subquery(counts), 0),
-                                 put_first=Exact(F('object_id'), unscored_id))
+        noscore = members.exclude(object_id__in=Subquery(cohort_scored))
+        apps = noscore.annotate(scores=Coalesce(Subquery(counts), 0),
+                                put_first=Exact(F('object_id'), unscored_id))
         chosen, first = None, None
         for member in apps.order_by('-put_first', 'scores', '?')[:2]:
             if member.put_first:
