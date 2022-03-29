@@ -215,7 +215,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         apps = CohortMember.objects.filter(cohort__panel__panelists=user,
                                            cohort__status=Cohort.Status.ACTIVE,
                                            cohort__form=form)
-        apps_count = apps.count()
+        apps_count = apps.values('object_id').distinct().count()
         
         through = Cohort.inputs.through
         input_q = through.objects.filter(cohort=OuterRef('cohort'))
