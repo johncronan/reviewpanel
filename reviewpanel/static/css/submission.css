@@ -1,4 +1,8 @@
 
+div#content {
+  top: 80px;
+}
+
 div.section {
   position: absolute;
   padding-bottom: 16px;
@@ -126,4 +130,9 @@ div#modal {
 div.ref_main_files_caption {
   display: block;
   margin: 0 auto;
+}
+
+div#stats {
+  height: 0;
+  top: 30px;
 }

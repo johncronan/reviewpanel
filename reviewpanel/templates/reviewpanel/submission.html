@@ -5,7 +5,7 @@
   <link rel="stylesheet" href="{% static "css/reviewpanel.css" %}">
   <link rel="stylesheet" href="{% static "css/submission.css" %}">
   <style>
-    div#content {
+    div.pagecontent {
       position: relative;
       top: 80px;
       width: 100%;
@@ -50,13 +50,19 @@
 {% endblock %}
 
 {% block content %}
-<div id="content">
+{% if presentation.show_stats %}
+<div id="stats" class="pagecontent">
+  scored: {{ stats.scored }} / {{ stats.total }}
+</div>
+{% endif %}
+
+<div id="content" class="pagecontent">
   {% for section, references, selectors in sections %}
     <div id="section_{{ section.name }}" class="section"
          style="{{ section.inline_style }}">
       <div class="wrapper">
         <div class="content">
-          {% if section.name == inputs_section %}
+          {% if section.name == presentation.inputs_section %}
             {% include "./submission_inputs.html" %}
           {% else %}
             {% include "./submission_section.html" %}

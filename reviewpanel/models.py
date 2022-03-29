@@ -74,6 +74,7 @@ class Presentation(models.Model):
                             verbose_name='identifier')
     no_input = models.BooleanField(default=False)
     min_seconds = models.PositiveIntegerField(default=0)
+    options = models.JSONField(default=dict, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -82,6 +83,10 @@ class Presentation(models.Model):
     def inputs_section(self):
         if self.no_input: return None
         return 'inputs'
+    
+    def show_stats(self):
+        if 'hide_stats' in self.options: return False
+        return True
 
 
 class Reference(RankedModel):

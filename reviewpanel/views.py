@@ -42,8 +42,8 @@ class FormInfoView(LoginRequiredMixin, FormObjectMixin, generic.DetailView):
         else: cohorts = cohorts.filter(status=Cohort.Status.ACTIVE)
         
         through = Cohort.inputs.through
-        input_qs = through.objects.filter(cohort=OuterRef('cohort'))
-        primary = Subquery(input_qs.order_by('input___rank').values('pk')[:1])
+        input_q = through.objects.filter(cohort=OuterRef('cohort'))
+        primary = Subquery(input_q.order_by('input___rank').values('input')[:1])
         user_scores = Score.objects.filter(panelist=self.request.user,
                                            cohort__in=cohorts.values('pk'),
                                            form=self.object).exclude(value=None)
@@ -212,6 +212,19 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         cnames = Subquery(references.exclude(collection='').values('collection'))
         blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
         
+        apps = CohortMember.objects.filter(cohort__panel__panelists=user,
+                                           cohort__status=Cohort.Status.ACTIVE,
+                                           cohort__form=form)
+        apps_count = apps.count()
+        
+        through = Cohort.inputs.through
+        input_q = through.objects.filter(cohort=OuterRef('cohort'))
+        primary = Subquery(input_q.order_by('input___rank').values('input')[:1])
+        qs = Score.objects.filter(value__gt=0, panelist=user, form=form,
+                                  cohort__panel__panelists=user,
+                                  cohort__status=Cohort.Status.ACTIVE)
+        scored_count = qs.annotate(pri=primary).filter(input=F('pri')).count()
+        
         initial = {}
         if score.value is not None:
             for score in scores.select_related('input').filter(cohort=cohort):
@@ -253,8 +266,8 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             'cohort': cohort, 'presentation': pres,
             'blocks': { b.name: b for b in blocks }, 'items': items,
             'template': pres.template, 'sections': sections,
-            'inputs_section': pres.inputs_section(), 'form': scores_form,
-            'prev_on': prev_on, 'next_on': next_on
+            'form': scores_form, 'prev_on': prev_on, 'next_on': next_on,
+            'stats': {'scored': scored_count, 'total': apps_count}
         })
         return context
 
