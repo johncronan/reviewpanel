@@ -9,6 +9,11 @@
 
 {% block content %}
 <div class="center-fixed">
+  {% with p=program_form.program.slug f=program_form.slug %}
+  <div style="margin-bottom: 2em;">
+    <a href="{% url 'plugins:reviewpanel:form' p f %}">review submissions</a>
+  </div>
+  
   <table class="scores">
     <thead>
       <tr><th></th><th>score</th><th>created</th></tr>
@@ -18,11 +23,9 @@
     {% for score in page %}
       <tr>
         <td>
-      {% with p=program_form.program.slug f=program_form.slug %}
       <a href="{% url 'plugins:reviewpanel:submission' p f score.object_id %}">
             score #{{ page.start_index|add:forloop.counter0 }}
       </a>
-      {% endwith %}
         </td>
         <td>
           {% if score.value %}{{ score.value }}{% else %}skipped{% endif %}
@@ -32,6 +35,7 @@
     {% endfor %}
     </tbody>
   </table>
+  {% endwith %}
   
   <div class="pagination">
     {% if page.has_previous %}

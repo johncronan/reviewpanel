@@ -50,11 +50,27 @@
 {% endblock %}
 
 {% block content %}
+<div id="top" class="pagecontent">
+
 {% if presentation.show_stats %}
-<div id="stats" class="pagecontent">
+<div id="topleft">
   scored: {{ stats.scored }} / {{ stats.total }}
 </div>
 {% endif %}
+
+<div id="topcenter">
+  {% with pslug=presentation.form.program.slug fslug=presentation.form.slug %}
+  <a href="{% url 'plugins:reviewpanel:form_index' pslug fslug %}">
+    previous scores
+  </a>
+  {% endwith %}
+</div>
+
+<div id="topright">
+  <a href="{% url 'logout' %}?next=/">log out</a>
+</div>
+
+</div>
 
 <div id="content" class="pagecontent">
   {% for section, references, selectors in sections %}

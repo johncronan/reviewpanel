@@ -132,7 +132,24 @@ div.ref_main_files_caption {
   margin: 0 auto;
 }
 
-div#stats {
+div#top {
+  top: 25px;
   height: 0;
-  top: 30px;
+}
+
+div#topleft {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+div#topcenter {
+  width: 100%;
+  text-align: center;
+}
+
+div#topright {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
