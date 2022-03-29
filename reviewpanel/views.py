@@ -1,5 +1,6 @@
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.views import generic
+from django.core.paginator import Paginator
 from django.db.models import F, Q, Count, Exists, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.db.models.lookups import Exact
@@ -15,6 +16,8 @@ from .models import Cohort, CohortMember, Score, Input
 
 
 URL_PREFIX = 'plugins:reviewpanel:'
+SCORES_PER_PAGE = 50
+
 
 class FormObjectMixin(generic.detail.SingleObjectMixin):
     context_object_name = 'program_form'
@@ -27,10 +30,28 @@ class FormObjectMixin(generic.detail.SingleObjectMixin):
 class FormInfoView(LoginRequiredMixin, FormObjectMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
         # TODO cohorts the panelist reviews, accumulate status messages
         #  prefer active, fallback to completed (and remember which)
-        # TODO if index,
-        #  get scores for primary input of any by-default-active () cohort
+        if 'closed' in self.template_name: return context
+        
+        cohorts = Cohort.objects.filter(panel__panelists=self.request.user,
+                                        form=self.object)
+        if 'completed' in self.request.GET:
+            cohorts = cohorts.filter(status=Cohort.Status.COMPLETED)
+        else: cohorts = cohorts.filter(status=Cohort.Status.ACTIVE)
+        
+        through = Cohort.inputs.through
+        input_qs = through.objects.filter(cohort=OuterRef('cohort'))
+        primary = Subquery(input_qs.order_by('input___rank').values('pk')[:1])
+        user_scores = Score.objects.filter(panelist=self.request.user,
+                                           cohort__in=cohorts.values('pk'),
+                                           form=self.object).exclude(value=None)
+        scores = user_scores.annotate(pri=primary).filter(input=F('pri'))
+        
+        paginator = Paginator(scores.order_by('created'), SCORES_PER_PAGE)
+        page = self.request.GET.get('page', 1)
+        context['page'] = paginator.get_page(page)
         return context
 
 
