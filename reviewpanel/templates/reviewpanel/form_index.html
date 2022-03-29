@@ -1,0 +1,56 @@
+{% extends "reviewpanel/base.html" %}
+{% load static %}
+
+{% block style %}
+  <link rel="stylesheet" href="{% static "css/reviewpanel.css" %}">
+{% endblock %}
+
+{% block body_attributes %}class="form-index"{% endblock %}
+
+{% block content %}
+<div class="center-fixed">
+  {% with p=program_form.program.slug f=program_form.slug %}
+  <div style="margin-bottom: 2em;">
+    <a href="{% url 'plugins:reviewpanel:form' p f %}">review submissions</a>
+  </div>
+  
+  <table class="scores">
+    <thead>
+      <tr><th></th><th>score</th><th>created</th></tr>
+    </thead>
+    
+    <tbody>
+    {% for score in page %}
+      <tr>
+        <td>
+      <a href="{% url 'plugins:reviewpanel:submission' p f score.object_id %}">
+            score #{{ page.start_index|add:forloop.counter0 }}
+      </a>
+        </td>
+        <td>
+          {% if score.value %}{{ score.value }}{% else %}skipped{% endif %}
+        </td>
+        <td>{{ score.created }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endwith %}
+  
+  <div class="pagination">
+    {% if page.has_previous %}
+    <a href="?page=1">&laquo; first</a>
+    <a href="?page={{ page.previous_page_number }}">previous</a>
+    {% endif %}
+    
+    <span class="current">
+      Page {{ page.number }} of {{ page.paginator.num_pages }}.
+    </span>
+    
+    {% if page.has_next %}
+    <a href="?page={{ page.next_page_number }}">next</a>
+    <a href="?page={{ page.paginator.num_pages }}">last &raquo;</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -91,7 +91,7 @@ testing = ["coverage[toml] (>=5.0a4)", "pytest (>=4.6.11)"]
 
 [[package]]
 name = "django-jazzmin"
-version = "2.4.9"
+version = "2.5.0"
 description = "Drop-in theme for django admin, that utilises AdminLTE 3 & Bootstrap 4 to make yo' admin look jazzy"
 category = "main"
 optional = false
@@ -445,8 +445,8 @@ django-environ = [
     {file = "django_environ-0.8.1-py2.py3-none-any.whl", hash = "sha256:42593bee519a527602a467c7b682aee1a051c2597f98c45f4f4f44169ecdb6e5"},
 ]
 django-jazzmin = [
-    {file = "django-jazzmin-2.4.9.tar.gz", hash = "sha256:93c786e927f1c51d1abd3ef82b411789f3c2f498bbaec85d52a8ba21157a62fe"},
-    {file = "django_jazzmin-2.4.9-py3-none-any.whl", hash = "sha256:0620d828ee857b1fc69d0517913205b85005c66c42e3c4e15c05c3391bf65a40"},
+    {file = "django-jazzmin-2.5.0.tar.gz", hash = "sha256:2ee5ea548e9d5d6cf6495025d006b063ecae84702304eb90c9c5ef37ba99078a"},
+    {file = "django_jazzmin-2.5.0-py3-none-any.whl", hash = "sha256:6b9f9951eee41f60793a0d2f6f3d57213bd5605ddda7a106acb2bcdec4ef124e"},
 ]
 django-localflavor = [
     {file = "django-localflavor-3.1.tar.gz", hash = "sha256:ac2fa377bbcba4cae95e97077d9e77c7f22b3d93e4845e2e133ba7e664043a44"},

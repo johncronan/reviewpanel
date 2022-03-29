@@ -1,5 +1,6 @@
 from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.views import generic
+from django.core.paginator import Paginator
 from django.db.models import F, Q, Count, Exists, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.db.models.lookups import Exact
@@ -14,13 +15,48 @@ from .forms import ScoresForm
 from .models import Cohort, CohortMember, Score, Input
 
 
-class FormView(LoginRequiredMixin, generic.RedirectView,
-               generic.detail.SingleObjectMixin):
-    permanent = False
+URL_PREFIX = 'plugins:reviewpanel:'
+SCORES_PER_PAGE = 50
+
+
+class FormObjectMixin(generic.detail.SingleObjectMixin):
+    context_object_name = 'program_form'
     slug_url_kwarg = 'form_slug'
     
     def get_queryset(self):
         return Form.objects.filter(program__slug=self.kwargs['program_slug'])
+
+
+class FormInfoView(LoginRequiredMixin, FormObjectMixin, generic.DetailView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # TODO cohorts the panelist reviews, accumulate status messages
+        #  prefer active, fallback to completed (and remember which)
+        if 'closed' in self.template_name: return context
+        
+        cohorts = Cohort.objects.filter(panel__panelists=self.request.user,
+                                        form=self.object)
+        if 'completed' in self.request.GET:
+            cohorts = cohorts.filter(status=Cohort.Status.COMPLETED)
+        else: cohorts = cohorts.filter(status=Cohort.Status.ACTIVE)
+        
+        through = Cohort.inputs.through
+        input_q = through.objects.filter(cohort=OuterRef('cohort'))
+        primary = Subquery(input_q.order_by('input___rank').values('input')[:1])
+        user_scores = Score.objects.filter(panelist=self.request.user,
+                                           cohort__in=cohorts.values('pk'),
+                                           form=self.object).exclude(value=None)
+        scores = user_scores.annotate(pri=primary).filter(input=F('pri'))
+        
+        paginator = Paginator(scores.order_by('created'), SCORES_PER_PAGE)
+        page = self.request.GET.get('page', 1)
+        context['page'] = paginator.get_page(page)
+        return context
+
+
+class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
+    permanent = False
     
     def panelist_cohorts(self, user):
         # find the cohorts with unseen apps reviewed by panels this user is on
@@ -40,7 +76,7 @@ class FormView(LoginRequiredMixin, generic.RedirectView,
             object_id=OuterRef('object_id'), cohort=OuterRef('app_cohort')
         )
         unscored_subq = apps.exclude(Exists(app_cohort_score_subsubq))
-        return cohorts.filter(Exists(unscored_subq))
+        return cohorts, cohorts.filter(Exists(unscored_subq))
     
     def choose_panel(self, user, cohorts):
         total, weights = 0, {}
@@ -61,22 +97,25 @@ class FormView(LoginRequiredMixin, generic.RedirectView,
         self.object = self.get_object()
         form, user = self.object, self.request.user
         
-        cohorts = self.panelist_cohorts(user)
+        active_cohorts, cohorts = self.panelist_cohorts(user)
         
-        ctype = ContentType.objects.get_for_model(form.model)
+        cohort = self.choose_panel(user, cohorts)
+        if not cohort:
+            scores = Score.objects.exclude(value=None)
+            skipped = scores.filter(panelist=user, value=0,
+                                    cohort__in=active_cohorts).order_by('?')[:1]
+            if not skipped:
+                return reverse(URL_PREFIX + 'form_complete', kwargs=kwargs)
+            kwargs['pk'] = str(skipped[0].object_id)
+            return reverse(URL_PREFIX + 'submission_skips', kwargs=kwargs)
+        
         unscored = None
-        try: unscored = Score.objects.get(panelist=user, content_type=ctype,
-                                          cohort__in=cohorts, value=None)
+        try: unscored = Score.objects.get(panelist=user,
+                                          cohort=cohort, value=None)
         except Score.DoesNotExist: pass
         
         if unscored: cohort, unscored_id = unscored.cohort, unscored.object_id
-        else:
-            cohort = self.choose_panel(user, cohorts)
-            if not cohort:
-                url = reverse('plugins:reviewpanel:form_complete',
-                              kwargs=kwargs)
-                return HttpResponseRedirect(url)
-            unscored_id = None
+        else: unscored_id = None
         
         input = cohort.inputs.order_by('_rank')[0]
         scores = Score.objects.filter(value__gt=0,
@@ -87,9 +126,9 @@ class FormView(LoginRequiredMixin, generic.RedirectView,
         app_scores = scores.filter(object_id=OuterRef('object_id'))
         app_counts = app_scores.values('object_id').annotate(count=Count('*'))
         counts, members = app_counts.values('count'), cohort.cohortmember_set
-        unscored = members.exclude(object_id__in=Subquery(cohort_scored))
-        apps = unscored.annotate(scores=Coalesce(Subquery(counts), 0),
-                                 put_first=Exact(F('object_id'), unscored_id))
+        noscore = members.exclude(object_id__in=Subquery(cohort_scored))
+        apps = noscore.annotate(scores=Coalesce(Subquery(counts), 0),
+                                put_first=Exact(F('object_id'), unscored_id))
         chosen, first = None, None
         for member in apps.order_by('-put_first', 'scores', '?')[:2]:
             if member.put_first:
@@ -142,6 +181,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         score, prev, user = None, None, self.request.user
+        prev_on, next_on = False, False
         
         scores = Score.objects.filter(object_id=self.object.pk, panelist=user)
         try: score = scores.get(value=None) # placeholder for an assigned member
@@ -150,11 +190,19 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         query = scores.filter(cohort__status=Cohort.Status.ACTIVE)
         try: prev = query.exclude(value=None).order_by('-created')[:1].get()
         except Score.DoesNotExist: pass
-        if prev or (score and score.cohort.status != Cohort.Status.ACTIVE):
-            if score: score.delete() # cohort scored w before, made active again
-            score = prev # so delete the assignment and show it as prev scored
-        
-        if not score: return context
+
+        if score and score.cohort.status != Cohort.Status.ACTIVE:
+            score.delete()
+            return context
+        if prev and score: # cohort scored w before, made active again
+            score.delete() # so delete the assignment and show it as prev scored
+        if prev:
+            score = prev
+            qs = Score.objects.filter(panelist=user, form=score.form)
+            prior = qs.filter(Q(created__lt=score.created) |
+                             Q(created=score.created) & Q(id__lt=score.id))
+            prev_on, next_on = prior.exists(), True
+        if not score: return context # TODO: allow link sharing option
         
         query = Cohort.objects.select_related('presentation__template')
         cohort = query.get(pk=score.cohort_id)
@@ -163,6 +211,19 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         names = Subquery(references.filter(collection='').values('name'))
         cnames = Subquery(references.exclude(collection='').values('collection'))
         blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
+        
+        apps = CohortMember.objects.filter(cohort__panel__panelists=user,
+                                           cohort__status=Cohort.Status.ACTIVE,
+                                           cohort__form=form)
+        apps_count = apps.count()
+        
+        through = Cohort.inputs.through
+        input_q = through.objects.filter(cohort=OuterRef('cohort'))
+        primary = Subquery(input_q.order_by('input___rank').values('input')[:1])
+        qs = Score.objects.filter(value__gt=0, panelist=user, form=form,
+                                  cohort__panel__panelists=user,
+                                  cohort__status=Cohort.Status.ACTIVE)
+        scored_count = qs.annotate(pri=primary).filter(input=F('pri')).count()
         
         initial = {}
         if score.value is not None:
@@ -182,6 +243,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             refs.setdefault(ref.section.name, []).append(ref)
             
             if not ref.collection: continue
+            if ref.collection not in items: items[ref.collection] = []
             section = ref.select_section if ref.select_section else ref.section
             section_refs = select_refs.setdefault(section.name, {})
             collection = section_refs.setdefault(ref.collection, ([], []))
@@ -204,7 +266,8 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             'cohort': cohort, 'presentation': pres,
             'blocks': { b.name: b for b in blocks }, 'items': items,
             'template': pres.template, 'sections': sections,
-            'inputs_section': pres.inputs_section(), 'form': scores_form
+            'form': scores_form, 'prev_on': prev_on, 'next_on': next_on,
+            'stats': {'scored': scored_count, 'total': apps_count}
         })
         return context
 
@@ -213,6 +276,7 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
                      generic.FormView):
     template_name = 'reviewpanel/submission.html'
     form_class = ScoresForm
+    skips = False
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -225,10 +289,20 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
         # shouldn't be possible unless there's form tampering
         return HttpResponseRedirect(request.get_full_path())
     
+    def navigate_history(self, queryset, score, prev=False):
+        qs = queryset
+        if prev: qs = qs.filter(Q(created__lt=score.created) |
+                                Q(created=score.created) & Q(id__lt=score.id))
+        else: qs = qs.filter(Q(created__gt=score.created) |
+                             Q(created=score.created) & Q(id__gt=score.id))
+        try: return qs[0]
+        except IndexError: return None
+    
     def form_valid(self, form):
-        scores = []
+        user, program_form = self.request.user, self.cohort.form
+        
+        score = None
         for i, input in enumerate(self.inputs):
-            user, program_form = self.request.user, self.cohort.form
             ctype = ContentType.objects.get_for_model(program_form.model)
             args = {'content_type': ctype, 'form': program_form}
             python_val, args['text'] = form.cleaned_data[input.name], ''
@@ -249,7 +323,20 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
                 Score.objects.filter(**kwargs).delete()
             else: Score.objects.update_or_create(defaults=args, **kwargs)
         
-        # if we're in the previously scored submissions TODO
+        request = self.request
+        nav = 'prev_scored' in request.POST or 'next_scored' in request.POST
+        if nav and not self.skips:
+            qs = Score.objects.filter(panelist=user, form=program_form)
+            previous = 'prev_scored' in request.POST
+            target = self.navigate_history(qs, score, prev=previous)
+            
+            if not target:
+                self.kwargs.pop('pk')
+                url = reverse(URL_PREFIX + 'form_index', kwargs=self.kwargs)
+            else:
+                self.kwargs['pk'] = target.object_id
+                url = reverse(URL_PREFIX + 'submission', kwargs=self.kwargs)
+            return HttpResponseRedirect(url)
         
         # get another random submission to review
         self.kwargs.pop('pk')
@@ -268,8 +355,10 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
 
 
 class SubmissionView(generic.View):
+    skips = False
+    
     def get(self, request, *args, **kwargs):
         return SubmissionDetailView.as_view()(request, *args, **kwargs)
     
-    def post(self, request, *args, **kwargs):
-        return ScoresFormView.as_view()(request, *args, **kwargs)
+    def post(self, req, *args, **kwargs):
+        return ScoresFormView.as_view(skips=self.skips)(req, *args, **kwargs)

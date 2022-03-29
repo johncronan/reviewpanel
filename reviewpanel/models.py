@@ -74,6 +74,7 @@ class Presentation(models.Model):
                             verbose_name='identifier')
     no_input = models.BooleanField(default=False)
     min_seconds = models.PositiveIntegerField(default=0)
+    options = models.JSONField(default=dict, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -82,6 +83,10 @@ class Presentation(models.Model):
     def inputs_section(self):
         if self.no_input: return None
         return 'inputs'
+    
+    def show_stats(self):
+        if 'hide_stats' in self.options: return False
+        return True
 
 
 class Reference(RankedModel):
@@ -288,3 +293,10 @@ class Score(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     
     objects = ScoreManager()
+    
+    def __str__(self):
+        name = f'{self.panelist.username} {self.input.name} '
+        if self.value is None: return name + 'placeholder'
+        elif not self.value: return name + 'skip'
+        elif self.input.type == Input.InputType.TEXT: return name + 'score'
+        return name + f'score={self.value}'

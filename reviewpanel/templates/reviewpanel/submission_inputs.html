@@ -6,17 +6,25 @@
   {% for field in form %}
     <div class="input-score{% if forloop.first %} input-primary{% endif %}">
       {% if forloop.first %}
-        <div>{% if 0 %} {# TODO #} {% endif %}</div>
+      <div>
+        {% if next_on %}
+        <input type="submit"{% if not prev_on %} disabled{% endif %}
+               name="prev_scored" value="&#x2190;">
+        {% endif %}
+      </div>
       {% endif %}
 
       {% if field.field.widget.input_type != 'text' %}
-        <div>{{ field.label }}</div>
+      <div>{{ field.label }}</div>
       {% endif %}
       
       <div>{{ field }}</div>
       
       {% if forloop.first %}
-        <div><input type="submit" name="next" value="&#x2192;"></div>
+      <div>
+        <input type="submit" name="next{% if next_on %}_scored{% endif %}"
+               value="&#x2192;">
+      </div>
       {% endif %}
     </div>
   {% endfor %}

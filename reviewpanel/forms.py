@@ -87,7 +87,6 @@ class ScoresForm(forms.Form):
                 if allow_skip or i: field.required = False
             elif input.type == Input.InputType.BOOLEAN:
                 field = forms.BooleanField()
-                if allow_skip or i: field.required = False
             else:
                 field = forms.CharField(max_length=input.max_chars)
                 field.widget.attrs['placeholder'] = input.label

@@ -2,9 +2,10 @@
 {% load static %}
 
 {% block style %}
+  <link rel="stylesheet" href="{% static "css/reviewpanel.css" %}">
   <link rel="stylesheet" href="{% static "css/submission.css" %}">
   <style>
-    div#content {
+    div.pagecontent {
       position: relative;
       top: 80px;
       width: 100%;
@@ -49,13 +50,35 @@
 {% endblock %}
 
 {% block content %}
-<div id="content">
+<div id="top" class="pagecontent">
+
+{% if presentation.show_stats %}
+<div id="topleft">
+  scored: {{ stats.scored }} / {{ stats.total }}
+</div>
+{% endif %}
+
+<div id="topcenter">
+  {% with pslug=presentation.form.program.slug fslug=presentation.form.slug %}
+  <a href="{% url 'plugins:reviewpanel:form_index' pslug fslug %}">
+    previous scores
+  </a>
+  {% endwith %}
+</div>
+
+<div id="topright">
+  <a href="{% url 'logout' %}?next=/">log out</a>
+</div>
+
+</div>
+
+<div id="content" class="pagecontent">
   {% for section, references, selectors in sections %}
     <div id="section_{{ section.name }}" class="section"
          style="{{ section.inline_style }}">
       <div class="wrapper">
         <div class="content">
-          {% if section.name == inputs_section %}
+          {% if section.name == presentation.inputs_section %}
             {% include "./submission_inputs.html" %}
           {% else %}
             {% include "./submission_section.html" %}

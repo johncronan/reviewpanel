@@ -1,7 +1,6 @@
 
-body {
-  font: 100% sans-serif;
-  padding: 0 16px;
+div#content {
+  top: 80px;
 }
 
 div.section {
@@ -131,4 +130,26 @@ div#modal {
 div.ref_main_files_caption {
   display: block;
   margin: 0 auto;
+}
+
+div#top {
+  top: 25px;
+  height: 0;
+}
+
+div#topleft {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+div#topcenter {
+  width: 100%;
+  text-align: center;
+}
+
+div#topright {
+  position: absolute;
+  top: 0;
+  right: 0;
 }

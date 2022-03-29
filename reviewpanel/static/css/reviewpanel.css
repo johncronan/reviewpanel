@@ -1,0 +1,31 @@
+
+body {
+  font: 100% sans-serif;
+  padding: 0 16px;
+}
+
+body.form-index {
+  width: 100%;
+}
+
+div.center-fixed {
+  margin: 80px auto 20px;
+  width: 100%;
+  max-width: 600px;
+}
+
+table.scores {
+  border-collapse: collapse;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  margin-bottom: 2em;
+}
+
+table.scores tbody tr {
+  border-bottom: thin solid #dddddd;
+}
+
+table.scores th, td {
+  padding: 12px 16px;
+}
+
