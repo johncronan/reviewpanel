@@ -10,8 +10,14 @@
 {% block content %}
 <div class="center-fixed">
   {% with p=program_form.program.slug f=program_form.slug %}
-  <div style="margin-bottom: 2em;">
-    <a href="{% url 'plugins:reviewpanel:form' p f %}">review submissions</a>
+  <div style="margin-bottom: 2em; width: 100%;">
+    <div style="display:inline-block;">
+      <a href="{% url 'plugins:reviewpanel:form' p f %}">review submissions</a>
+    </div>
+    
+    <div style="float: right;">
+      <a href="{% url 'logout' %}?next=/">log out</a>
+    </div>
   </div>
   
   <table class="scores">
