@@ -8,7 +8,7 @@
     <div class="item-thumb-container">
     {% for item in collection %}
       <div class="item-thumbnail" data-id="{{ item|underscore:'id' }}">
-      {% with thumb=item|underscore:'thumbnail_url' %}
+      {% with thumb=item|underscore:'artifact_url' %}
         {% if thumb %}
           <img src="{{ thumb }}">
         {% else %}
