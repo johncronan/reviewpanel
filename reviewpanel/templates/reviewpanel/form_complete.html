@@ -1,6 +1,8 @@
 {% extends "reviewpanel/base.html" %}
 {% load static %}
 
+{% block title %}{{ program_form.name }}{% endblock %}
+
 {% block style %}
   <link rel="stylesheet" href="{% static "css/reviewpanel.css" %}">
 {% endblock %}
