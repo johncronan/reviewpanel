@@ -55,6 +55,7 @@
 {% if presentation.show_stats %}
 <div id="topleft">
   scored: {{ stats.scored }} / {{ stats.total }}
+  {% if stats.skipped %}({{ stats.skipped }} skipped){% endif %}
 </div>
 {% endif %}
 

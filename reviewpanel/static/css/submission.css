@@ -34,9 +34,15 @@ div.item {
 }
 
 img.item_image,video.item_video {
-  object-fit: scale-down;
   width: 100%;
   height: 100%;
+}
+
+img.item_image { object-fit: scale-down; }
+video.item_video { object-fit: contain; }
+
+div.item_video {
+  background-color: black;
 }
 
 div.item_audio {
@@ -55,6 +61,10 @@ object.item_document {
   height: 100%;
 }
 
+.item-selector-section {
+  position: relative;
+}
+
 div.item-selector {
   height: 100px;
   width: 100%;
@@ -67,11 +77,15 @@ div.item-selector {
   scroll-padding: 0 10px;
 }
 
+div.item-thumb-container {
+  width: min-content;
+}
+
 div.item-thumbnail {
   display: inline-block;
   height: 100px;
   width: 150px;
-  scroll-snap-align: center;
+  scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 
@@ -80,6 +94,39 @@ div.item-thumbnail img {
   height: 100%;
   object-fit: contain;
 }
+
+button.thumb-advance {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  opacity: 0;
+  transition: opacity .3s;
+  padding: 0;
+  width: 28px;
+}
+.thumb-advance-left {
+  left: 0;
+  text-align: left;
+  padding-right: 8px;
+  background: linear-gradient(to right, rgba(255,255,255,1) 0%,
+                                        rgba(255,255,255,1) 30%,
+                                        rgba(255,255,255,0) 100%);
+}
+.thumb-advance-right {
+  right: 0;
+  text-align: right;
+  padding-left: 8px;
+  background: linear-gradient(to left, rgba(255,255,255,1) 0%,
+                                       rgba(255,255,255,1) 30%,
+                                       rgba(255,255,255,0) 100%);
+}
+svg.advancer-icon {
+  cursor: pointer;
+  padding: 8px 0;
+  width: 20px;
+}
+.thumb-advance-left svg.advancer-icon { padding-right: 8px; }
+.thumb-advance-right svg.advancer-icon { padding-left: 8px; }
 
 div.input-score {
   display: flex;
@@ -126,12 +173,6 @@ div#modal {
   object-fit: scale-down;
 }
 
-/* TODO: move to custom css */
-div.ref_main_files_caption {
-  display: block;
-  margin: 0 auto;
-}
-
 div#top {
   top: 25px;
   height: 0;
@@ -152,4 +193,14 @@ div#topright {
   position: absolute;
   top: 0;
   right: 0;
+}
+
+/* TODO: move to custom css */
+div.ref_main_files_caption {
+  display: block;
+  margin: 0 auto;
+}
+
+div#section_selector {
+  height: 100px;
 }

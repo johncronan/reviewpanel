@@ -215,15 +215,20 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         apps = CohortMember.objects.filter(cohort__panel__panelists=user,
                                            cohort__status=Cohort.Status.ACTIVE,
                                            cohort__form=form)
-        apps_count = apps.count()
+        apps_count = apps.values('object_id').distinct().count()
         
         through = Cohort.inputs.through
         input_q = through.objects.filter(cohort=OuterRef('cohort'))
         primary = Subquery(input_q.order_by('input___rank').values('input')[:1])
-        qs = Score.objects.filter(value__gt=0, panelist=user, form=form,
+        qs = Score.objects.filter(value__isnull=False, panelist=user, form=form,
                                   cohort__panel__panelists=user,
                                   cohort__status=Cohort.Status.ACTIVE)
-        scored_count = qs.annotate(pri=primary).filter(input=F('pri')).count()
+        scored = qs.annotate(pri=primary,
+                             skip=Exact(F('value'), 0)).filter(input=F('pri'))
+        scored_counts = scored.values('skip').annotate(c=Coalesce(Count('*'),
+                                                                  0))
+        counts = {False: 0, True: 0}
+        for c in scored_counts.values('skip', 'c'): counts[c['skip']] = c['c']
         
         initial = {}
         if score.value is not None:
@@ -267,7 +272,8 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             'blocks': { b.name: b for b in blocks }, 'items': items,
             'template': pres.template, 'sections': sections,
             'form': scores_form, 'prev_on': prev_on, 'next_on': next_on,
-            'stats': {'scored': scored_count, 'total': apps_count}
+            'stats': {'scored': counts[False], 'skipped': counts[True],
+                      'total': apps_count}
         })
         return context
 

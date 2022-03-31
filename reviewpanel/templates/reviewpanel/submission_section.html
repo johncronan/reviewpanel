@@ -7,7 +7,8 @@
   
   {% if not ref.collection %}
     <div id="ref_{{ section.name }}_{{ ref.id_string }}"
-         class="block-reference">
+         class="block-reference" style="
+         min-height: {% if not section.wrap %}1.14em{% else %}0{% endif %}">
       {% if ref.inline_label %}{{ ref.inline_label_html }}{% endif %}
       
       {% dereference_block ref submission %}
@@ -23,7 +24,8 @@
              data-ref="{{ ref.id }}" style="
         {% if not ref.combined and not forloop.first %}display: none;{% endif %}
         {% if not section.scroll and not ref.name %}
-          flex-grow: 1; min-height: 0;
+          flex-grow: 1;
+          min-height: {% if not section.wrap %}1.14em{% else %}0{% endif %};
         {% endif %}">
       {% endif %}
       

@@ -103,6 +103,11 @@ class CohortAdmin(admin.ModelAdmin):
     list_display = ('name', 'panel', 'status', 'form')
     list_filter = ('panel', 'status', 'form')
     inlines = [CohortMemberInline]
+    readonly_fields = ('primary_input',)
+    
+    def primary_input(self, obj):
+        input = obj.inputs.order_by('_rank')[:1]
+        return input[0] if input else None
 
 
 class ScoreTypeFilter(admin.SimpleListFilter):
