@@ -2,24 +2,41 @@
 {% load static %}
 
 {% collection_items items collection_name as collection %}
-
-<div class="item-selector" data-refs="{{ refs|join_ids:' ' }}">
-  {% for item in collection %}
-    <div class="item-thumbnail" data-id="{{ item|underscore:'id' }}">
-    {% with thumb=item|underscore:'thumbnail_url' %}
-      {% if thumb %}
-        <img src="{{ thumb }}">
-      {% else %}
-        {% with meta=item|underscore:'filemeta' %}
-        {% if meta.type == 'audio' %}
-          <img src="{% static "img/rp_icons/audio.png" %}">
+<div id="sel_{{ section.name }}_{{ collection_name }}"
+     class="item-selector-section">
+  <div class="item-selector" data-refs="{{ refs|join_ids:' ' }}">
+    <div class="item-thumb-container">
+    {% for item in collection %}
+      <div class="item-thumbnail" data-id="{{ item|underscore:'id' }}">
+      {% with thumb=item|underscore:'thumbnail_url' %}
+        {% if thumb %}
+          <img src="{{ thumb }}">
         {% else %}
-          <img src="{% static "img/rp_icons/generic.png" %}">
+          {% with meta=item|underscore:'filemeta' %}
+          {% if meta.type == 'audio' %}
+            <img src="{% static "img/rp_icons/audio.png" %}">
+          {% else %}
+            <img src="{% static "img/rp_icons/generic.png" %}">
+          {% endif %}
+          {% endwith %}
         {% endif %}
-        {% endwith %}
-      {% endif %}
-      {# TODO: item models without a file (look at refs.0) #}
-    {% endwith %}
+        {# TODO: item models without a file (look at refs.0) #}
+      {% endwith %}
+      </div>
+    {% endfor %}
     </div>
-  {% endfor %}
+  </div>
+  
+  <button class="thumb-advance thumb-advance-left" type="button">
+    <svg class="advancer-icon" viewBox="0 0 551 1024">
+      <path d="M445.44 38.183L-2.53 512l447.97 473.817
+               85.857-81.173-409.6-433.23v81.172l409.6-433.23L445.44 38.18z">
+    </svg>
+  </button>
+  <button class="thumb-advance thumb-advance-right" type="button">
+    <svg class="advancer-icon" viewBox="0 0 551 1024">
+      <path d="M105.56 985.817L553.53 512 105.56 38.183l-85.857
+               81.173 409.6 433.23v-81.172l-409.6 433.23 85.856 81.174z">
+    </svg>
+  </button>
 </div>
