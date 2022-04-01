@@ -352,10 +352,13 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
         self.submission = self.get_object()
         
         if 'cohort_id' not in request.POST: return HttpResponseBadRequest()
-        # TODO: check that the panelist is reviewing this cohort
+        
         try: self.cohort = Cohort.objects.get(pk=int(request.POST['cohort_id']),
-                                              status=Cohort.Status.ACTIVE)
+                                              panel__panelists=request.user)
         except ValueError: return HttpResponseBadRequest()
+        if self.cohort.status != Cohort.Status.ACTIVE: # this will redir to an
+            self.kwargs.pop('pk') # app in cohort still active, or form_complete
+            return FormView.as_view()(self.request, **self.kwargs)
         
         return super().post(request, *args, **kwargs)
 

@@ -1,3 +1,5 @@
+{% load submission %}
+
 {% with type=meta.type %}
   {% if not ref.inline_combine %}<div class="item item_{{ type }}">{% endif %}
   
@@ -6,7 +8,13 @@
   {% elif type == 'video' %}
     <video class="item_video" controls="controls">
       <source src="{{ file.url }}">
-      {# TODO caption file #}
+    {% for sub in meta.subtitles %}
+    {% with lang=sub.language %}
+      <track label="{{ lang|language_label }}" kind="subtitles"
+             srclang="{{ lang }}" src="{{ item|subtitle_url:lang }}"
+             {% if sub.default %}default{% endif %}>
+    {% endwith %}
+    {% endfor %}
     </video>
   {% elif type == 'audio' %}
     <audio class="item_audio" controls="controls">
