@@ -93,6 +93,7 @@ class ScoresForm(forms.Form):
                 if not input.min_num: field.required = False
             
             field.label = input.label
+            if not i: field.widget.attrs['class'] = 'primary-input'
             self.fields[input.name] = field
     
     def clean(self):

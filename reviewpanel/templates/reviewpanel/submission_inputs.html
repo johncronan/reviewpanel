@@ -1,5 +1,8 @@
 
-<div class="inputs">
+{% with secs=presentation.min_seconds %}
+<div class="inputs"
+     data-min-secs="{% if next_on %}0{% else %}{{ secs }}{% endif %}">
+{% endwith %}
   <form method="post">{% csrf_token %}
     <input type="hidden" name="cohort_id" value="{{ cohort.id }}">
   
