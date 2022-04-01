@@ -228,7 +228,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         scored_counts = scored.values('skip').annotate(c=Coalesce(Count('*'),
                                                                   0))
         counts = {False: 0, True: 0}
-        for c in scored_counts.values('skip', 'c'): counts[c['skip']] = c['c']
+        for c in scored_counts.values('skip', 'c'): counts[c['skip']] += c['c']
         
         initial = {}
         if score.value is not None:
