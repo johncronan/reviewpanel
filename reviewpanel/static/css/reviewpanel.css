@@ -25,3 +25,13 @@ table.index th, td {
   padding: 12px 16px;
 }
 
+.table-controls {
+  width: 100%;
+  position: relative;
+}
+
+.table-controls > div {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+}
