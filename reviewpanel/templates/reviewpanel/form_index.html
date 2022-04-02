@@ -7,8 +7,6 @@
   <link rel="stylesheet" href="{% static "css/reviewpanel.css" %}">
 {% endblock %}
 
-{% block body_attributes %}class="form-index"{% endblock %}
-
 {% block content %}
 <div class="center-fixed">
   {% with p=program_form.program.slug f=program_form.slug %}
@@ -22,7 +20,11 @@
     </div>
   </div>
   
-  <table class="scores">
+  <div style="margin-bottom: 2em;">
+    Form: {{ program_form.name }}
+  </div>
+  
+  <table class="index">
     <thead>
       <tr><th></th><th>score</th><th>created</th></tr>
     </thead>
@@ -45,7 +47,7 @@
   </table>
   {% endwith %}
   
-  <div class="pagination">
+  <div class="pagination" style="margin-bottom: 2em;">
     {% if page.has_previous %}
     <a href="?page=1">&laquo; first</a>
     <a href="?page={{ page.previous_page_number }}">previous</a>
@@ -59,6 +61,11 @@
     <a href="?page={{ page.next_page_number }}">next</a>
     <a href="?page={{ page.paginator.num_pages }}">last &raquo;</a>
     {% endif %}
+  </div>
+  
+  <div style="margin-bottom: 1em;">
+    {% url 'plugins:reviewpanel:program_index' program_form.program.slug as u %}
+    <a href="{{ u }}">&lt; all forms</a>
   </div>
 </div>
 {% endblock %}
