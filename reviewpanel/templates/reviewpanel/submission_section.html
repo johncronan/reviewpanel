@@ -2,7 +2,7 @@
 
 {% for ref in references %}
   {% if ref.block_label %}
-    <div class="par">{{ ref.block_label_html }}</div>
+    {{ ref.block_label_html }}
   {% endif %}
   
   {% if not ref.collection %}

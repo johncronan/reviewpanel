@@ -4,9 +4,14 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, \
     GenericRelation
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from formative.models import Program, Form, RankedModel
+from formative.utils import MarkdownFormatter, remove_p
+
+
+markdown = MarkdownFormatter()
 
 
 class Template(models.Model):
@@ -148,10 +153,10 @@ class Reference(RankedModel):
         return str
     
     def block_label_html(self):
-        return self.block_label # TODO: markdown formatting
+        return mark_safe(markdown.convert(self.block_label))
     
     def inline_label_html(self):
-        return self.inline_label
+        return mark_safe(remove_p(markdown.convert(self.inline_label)))
 
 
 class Input(RankedModel):

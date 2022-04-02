@@ -6,6 +6,7 @@
 {% block style %}
   <link rel="stylesheet" href="{% static "css/reviewpanel.css" %}">
   <link rel="stylesheet" href="{% static "css/submission.css" %}">
+  <link rel="stylesheet" href="{% static "css/markdown.css" %}">
   <style>
     div.pagecontent {
       position: relative;
@@ -77,7 +78,7 @@
 
 </div>
 
-<div id="content" class="pagecontent">
+<div id="content" class="pagecontent markdown-body">
   {% for section, references, selectors in sections %}
     <div id="section_{{ section.name }}" class="section"
          style="{{ section.inline_style }}">

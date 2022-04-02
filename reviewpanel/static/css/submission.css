@@ -20,10 +20,6 @@ div.section div.wrapper div.content {
   flex-direction: column;
 }
 
-div.par {
-  margin-bottom: 12px;
-}
-
 div.block-reference,div.item-reference {
   margin-bottom: 8px;
 }
