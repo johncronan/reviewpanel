@@ -39,3 +39,12 @@ def underscore(obj, name):
     attr = getattr(obj, '_' + name)
     if callable(attr): return attr()
     return attr
+
+@register.filter
+def language_label(lang):
+    if lang == 'und': return 'unknown language'
+    return lang # TODO
+
+@register.filter
+def subtitle_url(item, lang):
+    return item._artifact_url('subtitles_' + lang)

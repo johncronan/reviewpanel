@@ -100,3 +100,35 @@ window.onresize = function () {
   }
 }
 window.onresize();
+
+var timer = 0;
+if (document.querySelector('div.inputs'))
+  timer = parseInt(document.querySelector('div.inputs').dataset.minSecs);
+
+function disableForm(input) {
+  input.value = timer;
+  input.setAttribute('disabled', 'disabled');
+}
+function enableForm(input) {
+  input.value = '\u2192';
+  input.removeAttribute('disabled');
+}
+
+function scoreChange(event) {
+  if (!timer) return;
+  let input = document.querySelector('input[name="next"]');
+  if (document.querySelector('input.primary-input').value) disableForm(input);
+  else enableForm(input);
+}
+
+if (timer) {
+  document.querySelector('input.primary-input').oninput = scoreChange;
+  (function dec() {
+    let input = document.querySelector('input[name="next"]');
+    if (timer <= 0) return enableForm(input);
+    if (document.querySelector('input.primary-input').value) disableForm(input);
+    else enableForm(input);
+    timer -= 1;
+    setTimeout(dec, 1000);
+  })();
+}

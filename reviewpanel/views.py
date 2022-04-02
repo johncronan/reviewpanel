@@ -10,13 +10,63 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from random import random
 
-from formative.models import Form
+from formative.models import Program, Form
 from .forms import ScoresForm
 from .models import Cohort, CohortMember, Score, Input
 
 
 URL_PREFIX = 'plugins:reviewpanel:'
 SCORES_PER_PAGE = 50
+
+
+class ProgramView(LoginRequiredMixin, generic.DetailView):
+    model = Program
+    context_object_name = 'program'
+    template_name = 'reviewpanel/program_index.html'
+    show_all = False
+    
+    def get_object(self):
+        if self.show_all: return None
+        return super().get_object()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        if self.show_all:
+            programs = Program.objects.filter(
+                form__cohort__panel__panelists=self.request.user
+            ).exclude(form__cohort__status=Cohort.Status.INACTIVE)
+        else: programs = [self.object]
+        
+        through, user = Cohort.inputs.through, self.request.user
+        input_q = through.objects.filter(cohort=OuterRef('cohort'))
+        primary = Subquery(input_q.order_by('input___rank').values('input')[:1])
+        
+        forms = {}
+        for program in programs:
+            q = Score.objects.filter(value__gt=0, panelist=user,
+                                     cohort=OuterRef('pk'))
+            scored = q.annotate(p=primary).filter(input=F('p')).values('cohort')
+            scored_count = scored.annotate(c=Count('*')).values('c')
+            cohorts_qs = Cohort.objects.filter(form__program=program,
+                                               panel__panelists=user)
+            vals = cohorts_qs.values('form__slug', 'form__name', 'status')
+            cohort_counts = vals.annotate(count=Coalesce(Subquery(scored_count),
+                                                         0))
+            forms[program] = {}
+            for c in cohort_counts:
+                default = {'active_scored': 0, 'completed_scored': 0,
+                           'active': False}
+                form = forms[program].setdefault(c['form__slug'], default)
+                form['name'] = c['form__name']
+                if c['status'] == Cohort.Status.ACTIVE:
+                    form['active_scored'] = c['count']
+                    form['active'] = True
+                elif c['status'] == Cohort.Status.COMPLETED:
+                    form['completed_scored'] = c['count']
+        
+        context['forms'] = forms
+        return context
 
 
 class FormObjectMixin(generic.detail.SingleObjectMixin):
@@ -228,7 +278,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         scored_counts = scored.values('skip').annotate(c=Coalesce(Count('*'),
                                                                   0))
         counts = {False: 0, True: 0}
-        for c in scored_counts.values('skip', 'c'): counts[c['skip']] = c['c']
+        for c in scored_counts.values('skip', 'c'): counts[c['skip']] += c['c']
         
         initial = {}
         if score.value is not None:
@@ -352,10 +402,13 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
         self.submission = self.get_object()
         
         if 'cohort_id' not in request.POST: return HttpResponseBadRequest()
-        # TODO: check that the panelist is reviewing this cohort
+        
         try: self.cohort = Cohort.objects.get(pk=int(request.POST['cohort_id']),
-                                              status=Cohort.Status.ACTIVE)
+                                              panel__panelists=request.user)
         except ValueError: return HttpResponseBadRequest()
+        if self.cohort.status != Cohort.Status.ACTIVE: # this will redir to an
+            self.kwargs.pop('pk') # app in cohort still active, or form_complete
+            return FormView.as_view()(self.request, **self.kwargs)
         
         return super().post(request, *args, **kwargs)
 

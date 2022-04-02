@@ -6,11 +6,16 @@
   <meta name="google" content="notranslate">
 {% endblock %}
 
+{% block page_title %}{% block title %}{% endblock %} - reviewpanel
+{% endblock %}
+
 {% block head_trailing %}
   {# TODO Django Compressor (offline) instead of hooking into webpack? #}
   <link rel="stylesheet" href="{% static "css/reset.css" %}">
   {% block style %}{% endblock %}
 {% endblock %}
+
+{% block body_attributes %}class="page"{% endblock %}
 
 {% block body %}
 {% block content %}{% endblock %}
