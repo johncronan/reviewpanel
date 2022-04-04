@@ -12,11 +12,7 @@
 {% block content %}
 <div class="center-fixed">
   <div style="margin-bottom: 2em; width: 100%;">
-    <div style="display:inline-block;">
-      {% if program %}
-      <a href="{% url 'plugins:reviewpanel:index' %}">&lt; all programs</a>
-      {% endif %}
-    </div>
+    <div style="display: inline-block;">&nbsp;</div>
     
     <div style="float: right;">
       <a href="{% url 'logout' %}?next=/">log out</a>
@@ -63,6 +59,13 @@
       </tr>
     {% endfor %}
     </tbody>
+  </table>
   {% endfor %}
+  
+  {% if program %}
+  <div style="margin-bottom: 1em;">
+    <a href="{% url 'plugins:reviewpanel:index' %}">&lt; all programs</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

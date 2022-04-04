@@ -9,6 +9,24 @@
 
 {% block content %}
 <div class="center-fixed">
-  All done! message TODO
+  <div style="margin-bottom: 2em; width: 100%;">
+    <div style="display:inline-block;">
+      {% with slug=program_form.program.slug %}
+      <a href="{% url 'plugins:reviewpanel:program_index' slug %}">
+        &lt; all forms
+      </a>
+      {% endwith %}
+    </div>
+    
+    <div style="float: right;">
+      <a href="{% url 'logout' %}?next=/">log out</a>
+    </div>
+  </div>
+  
+  <div class="messages">
+  {% for message in messages %}
+    <div style="margin-bottom: 1.5em;">{{ message }}</div>
+  {% endfor %}
+  </div>
 </div>
 {% endblock %}

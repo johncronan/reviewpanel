@@ -81,14 +81,24 @@ class FormInfoView(LoginRequiredMixin, FormObjectMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # TODO cohorts the panelist reviews, accumulate status messages
-        #  prefer active, fallback to completed (and remember which)
-        if 'closed' in self.template_name: return context
-        
         cohorts = Cohort.objects.filter(panel__panelists=self.request.user,
                                         form=self.object)
-        if 'completed' in self.request.GET:
+        cohorts = cohorts.exclude(status=Cohort.Status.INACTIVE)
+        messages, cohort_active = ([], []), False
+        for cohort in cohorts:
+            active = int(cohort.status == Cohort.Status.ACTIVE)
+            if active: cohort_active = True
+            if cohort.message not in messages[active]:
+                messages[active].append(cohort.message)
+        messages = messages[int(cohort_active)]
+        if len(messages) == 1 and not messages[0]: messages[0] = 'All done!'
+        
+        context.update(cohort_active=cohort_active, messages=messages)
+        if 'closed' in self.template_name: return context
+        
+        if not cohort_active or 'completed' in self.request.GET:
             cohorts = cohorts.filter(status=Cohort.Status.COMPLETED)
+            context['completed'] = True
         else: cohorts = cohorts.filter(status=Cohort.Status.ACTIVE)
         
         through = Cohort.inputs.through

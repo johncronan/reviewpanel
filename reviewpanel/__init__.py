@@ -1,2 +1,2 @@
-__version__ = '0.5.9'
+__version__ = '0.6.1'
 default_app_config = 'reviewpanel.apps.ReviewPanelConfig'

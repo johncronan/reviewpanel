@@ -1,6 +1,9 @@
 from django import forms
-from django.db.models import Q
 from django.contrib import admin
+from django.db.models import Q
+from django.http import HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.shortcuts import get_object_or_404
 from functools import partial
 
 from formative.admin import site
@@ -87,15 +90,47 @@ class InputAdmin(admin.ModelAdmin):
     exclude = ('_rank',)
 
 
+@admin.action(description='Add users to panel')
+def add_to_panel(modeladmin, request, queryset):
+    if 'panel' in request.POST:
+        panel = get_object_or_404(Panel, id=int(request.POST['panel']))
+        panel.panelists.add(*queryset)
+        modeladmin.message_user(request,
+                                f'Users added to panel "{panel.name}".')
+        return HttpResponseRedirect(request.get_full_path())
+    
+    class PanelForm(forms.Form):
+        panel = forms.ModelChoiceField(queryset=Panel.objects.all())
+    
+    template_name = 'admin/reviewpanel/add_to_panel.html'
+    context = {
+        **modeladmin.admin_site.each_context(request),
+        'opts': modeladmin.model._meta, 'users': queryset,
+        'form': PanelForm(), 'title': 'Add to panel'
+    }
+    return TemplateResponse(request, template_name, context)
+
+
+class PanelistInline(admin.TabularInline):
+    model = Panel.panelists.through
+    extra = 0
+    verbose_name = 'panelist'
+    verbose_name_plural = 'panelists'
+
+
 @admin.register(Panel, site=site)
 class PanelAdmin(admin.ModelAdmin):
     list_display = ('name', 'program')
     list_filter = ('program',)
+    inlines = [PanelistInline]
+    exclude = ('panelists',)
 
 
 class CohortMemberInline(admin.TabularInline):
     model = CohortMember
     extra = 0
+    
+#    def get_formset(self, request, obj=None, **kwargs): TODO
 
 
 @admin.register(Cohort, site=site)
@@ -104,6 +139,11 @@ class CohortAdmin(admin.ModelAdmin):
     list_filter = ('panel', 'status', 'form')
     inlines = [CohortMemberInline]
     readonly_fields = ('primary_input',)
+    
+    def get_formsets_with_inlines(self, request, obj=None):
+        for inline in self.get_inline_instances(request, obj):
+            if not isinstance(inline, CohortMemberInline) or obj is not None:
+                yield inline.get_formset(request, obj), inline
     
     def primary_input(self, obj):
         input = obj.inputs.order_by('_rank')[:1]

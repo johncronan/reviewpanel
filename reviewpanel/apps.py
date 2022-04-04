@@ -15,4 +15,4 @@ class ReviewPanelConfig(AppConfig):
         version = __version__
     
     def ready(self):
-        pass
+        from . import signals

@@ -24,6 +24,24 @@
     Form: {{ program_form.name }}
   </div>
   
+  <div class="table-controls">
+    <div>
+    {% if cohort_active %}
+      {% if completed %}
+      <a href="{% url 'plugins:reviewpanel:form_index' p f %}">
+      {% endif %}
+        active
+      {% if completed %}</a>{% endif %}
+      |
+    {% endif %}
+      {% if not completed %}
+      <a href="{% url 'plugins:reviewpanel:form_index' p f %}?completed">
+      {% endif %}
+        complete
+      {% if not completed %}</a>{% endif %}
+    </div>
+  </div>
+  
   <table class="index">
     <thead>
       <tr><th></th><th>score</th><th>created</th></tr>
