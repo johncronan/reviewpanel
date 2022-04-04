@@ -1,0 +1,36 @@
+{% extends "admin/formative/confirmation.html" %}
+
+{% block cardtitle %}Add Users to Panel{% endblock %}
+
+{% block cardcontent %}
+    <p>
+      Select a panel to add the users to:
+    </p>
+    {{ form.as_p }}
+{% endblock %}
+
+{% block rowcontent %}
+    <div class="col-12 col-sm-9">
+      <h4>Users</h4>
+      <ol>
+        {{ users|slice:':20'|unordered_list }}
+        {% if users|length > 20 %}<li>...</li>{% endif %}
+      </ol>
+      {% for user in users %}
+      <input type="hidden" name="_selected_action" value="{{ user.pk }}">
+      {% endfor %}
+    </div>
+{% endblock %}
+
+{% block formcontrols %}
+    <input type="hidden" name="action" value="add_to_panel">
+    <div class="form-group">
+      <input type="submit" name="add"
+             class="btn {{ jazzmin_ui.button_classes.danger }}
+                    form-control" value="Add Users">
+    </div>
+    <div class="form-group">
+      <a href="#" class="btn {{ jazzmin_ui.button_classes.primary }}
+                         cancel-link form-control">Cancel</a>
+    </div>
+{% endblock %}

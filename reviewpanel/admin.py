@@ -1,6 +1,9 @@
 from django import forms
-from django.db.models import Q
 from django.contrib import admin
+from django.db.models import Q
+from django.http import HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.shortcuts import get_object_or_404
 from functools import partial
 
 from formative.admin import site
@@ -85,6 +88,27 @@ class InputAdmin(admin.ModelAdmin):
     list_display = ('name', 'form')
     list_filter = ('form',)
     exclude = ('_rank',)
+
+
+@admin.action(description='Add users to panel')
+def add_to_panel(modeladmin, request, queryset):
+    if 'panel' in request.POST:
+        panel = get_object_or_404(Panel, id=int(request.POST['panel']))
+        panel.panelists.add(*queryset)
+        modeladmin.message_user(request,
+                                f'Users added to panel "{panel.name}".')
+        return HttpResponseRedirect(request.get_full_path())
+    
+    class PanelForm(forms.Form):
+        panel = forms.ModelChoiceField(queryset=Panel.objects.all())
+    
+    template_name = 'admin/reviewpanel/add_to_panel.html'
+    context = {
+        **modeladmin.admin_site.each_context(request),
+        'opts': modeladmin.model._meta, 'users': queryset,
+        'form': PanelForm(), 'title': 'Add to panel'
+    }
+    return TemplateResponse(request, template_name, context)
 
 
 class PanelistInline(admin.TabularInline):
