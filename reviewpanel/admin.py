@@ -87,15 +87,26 @@ class InputAdmin(admin.ModelAdmin):
     exclude = ('_rank',)
 
 
+class PanelistInline(admin.TabularInline):
+    model = Panel.panelists.through
+    extra = 0
+    verbose_name = 'panelist'
+    verbose_name_plural = 'panelists'
+
+
 @admin.register(Panel, site=site)
 class PanelAdmin(admin.ModelAdmin):
     list_display = ('name', 'program')
     list_filter = ('program',)
+    inlines = [PanelistInline]
+    exclude = ('panelists',)
 
 
 class CohortMemberInline(admin.TabularInline):
     model = CohortMember
     extra = 0
+    
+#    def get_formset(self, request, obj=None, **kwargs): TODO
 
 
 @admin.register(Cohort, site=site)
@@ -104,6 +115,11 @@ class CohortAdmin(admin.ModelAdmin):
     list_filter = ('panel', 'status', 'form')
     inlines = [CohortMemberInline]
     readonly_fields = ('primary_input',)
+    
+    def get_formsets_with_inlines(self, request, obj=None):
+        for inline in self.get_inline_instances(request, obj):
+            if not isinstance(inline, CohortMemberInline) or obj is not None:
+                yield inline.get_formset(request, obj), inline
     
     def primary_input(self, obj):
         input = obj.inputs.order_by('_rank')[:1]
