@@ -258,8 +258,6 @@ class CohortMember(models.Model):
     object_id = models.UUIDField()
     member = GenericForeignKey()
     
-    # TODO for admin: set content_id from form post-init / pre-save
-    
     def __str__(self):
         if self.cohort.form.validation_type == Form.Validation.EMAIL:
             return self.member._email

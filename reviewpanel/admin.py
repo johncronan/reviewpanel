@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.admin.views.main import ChangeList
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Count, Exists, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.http import HttpResponseRedirect
@@ -142,7 +143,7 @@ class CohortAdmin(admin.ModelAdmin):
     list_display = ('name', 'panel', 'status', 'form')
     list_filter = ('panel', 'status', 'form')
     inlines = [CohortMemberInline]
-    readonly_fields = ('primary_input',)
+    readonly_fields = ('primary_input', 'size')
     
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
@@ -235,6 +236,7 @@ class CohortListFilter(admin.SimpleListFilter):
 class FormSubmissionsAdmin(admin.ModelAdmin):
     list_display = ('submission_id', '_created', '_modified')
     list_filter = (CohortListFilter,)
+    actions = ['add_to_cohort']
     
     def has_module_permission(self, request):
         return False # it's linked to by ProgramFormsAdmin, don't show in index
@@ -249,3 +251,35 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     @admin.display(description='ID')
     def submission_id(self, obj):
         return str(obj)
+    
+    @admin.action(description='Add submissions to cohort')
+    def add_to_cohort(self, request, queryset):
+        if 'cohort' in request.POST:
+            cohort = get_object_or_404(Cohort, id=int(request.POST['cohort']))
+            ctype = ContentType.objects.get_for_model(cohort.form.model)
+            member_subq = CohortMember.objects.filter(cohort=cohort,
+                                                      object_id=OuterRef('pk'))
+            members = []
+            for submission in queryset.exclude(Exists(member_subq)):
+                members.append(CohortMember(cohort=cohort, content_type=ctype,
+                                            object_id=submission.pk))
+            CohortMember.objects.bulk_create(members)
+            cohort.size = cohort.cohortmember_set.count()
+            cohort.save()
+            
+            msg = f'Submissions added to cohort "{cohort.name}".'
+            self.message_user(request, msg)
+            return HttpResponseRedirect(request.get_full_path())
+        
+        fs, ps = self.model._meta.form_slug, self.model._meta.program_slug
+        qs = Cohort.objects.filter(form__slug=fs, form__program__slug=ps)
+        class CohortForm(forms.Form):
+            cohort = forms.ModelChoiceField(queryset=qs)
+        
+        template_name = 'admin/reviewpanel/add_to_cohort.html'
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta, 'submissions': queryset,
+            'form': CohortForm(), 'title': 'Add to cohort'
+        }
+        return TemplateResponse(request, template_name, context)
