@@ -1,12 +1,16 @@
 from django import forms
 from django.contrib import admin
-from django.db.models import Q
+from django.contrib.admin.views.main import ChangeList
+from django.db.models import Q, Count, Subquery, OuterRef
+from django.db.models.functions import Coalesce
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404
+from django.urls import path, reverse
 from functools import partial
 
 from formative.admin import site
+from formative.models import Form, SubmissionRecord
 from .forms import ReferencesFormSet, ReferenceForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
     Panel, Cohort, CohortMember, Score
@@ -180,3 +184,49 @@ class ScoreAdmin(admin.ModelAdmin):
         if obj.input.type == Input.InputType.BOOLEAN: return bool(obj.value)
         if not obj.value: return '[skipped]'
         return obj.value
+
+
+class FormChangeList(ChangeList):
+    def url_for_result(self, result):
+        name = result.program.slug + '_' + result.slug
+        return reverse('admin:%s_%s_changelist' % (self.opts.app_label, name),
+                       current_app=self.model_admin.admin_site.name)
+
+class ProgramFormsAdmin(admin.ModelAdmin):
+    list_display = ('name', 'submitted', 'created', 'modified')
+    list_select_related = ('program',)
+    
+    def get_changelist(self, request, **kwargs):
+        return FormChangeList
+    
+    def get_queryset(self, request):
+        slug = self.model._meta.program_slug
+        forms = self.model.objects.exclude(status=Form.Status.DRAFT)
+        forms = forms.filter(program__slug=slug)
+        args = {'program__slug': slug, 'form': OuterRef('slug')}
+        args.update(type=SubmissionRecord.RecordType.SUBMISSION, deleted=False)
+        subquery = SubmissionRecord.objects.filter(**args)
+        count = subquery.values('form').annotate(count=Count('*'))
+        annotation = Coalesce(Subquery(count.values('count')), 0)
+        return forms.annotate(submitted=annotation)
+    
+    def submitted(self, obj):
+        return obj.submitted
+
+
+class FormSubmissionsAdmin(admin.ModelAdmin):
+    list_display = ('submission_id', '_created', '_modified')
+    
+    def has_module_permission(self, request):
+        return False # it's linked to by ProgramFormsAdmin, don't show in index
+    
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return False
+    
+    def get_queryset(self, request):
+        return self.model.objects.exclude(_submitted__isnull=True)
+    
+    @admin.display(description='ID')
+    def submission_id(self, obj):
+        return str(obj)
