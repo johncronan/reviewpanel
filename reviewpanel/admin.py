@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.admin.views.main import ChangeList
-from django.db.models import Q, Count, Subquery, OuterRef
+from django.db.models import Q, Count, Exists, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -214,8 +214,27 @@ class ProgramFormsAdmin(admin.ModelAdmin):
         return obj.submitted
 
 
+class CohortListFilter(admin.SimpleListFilter):
+    title = 'cohort'
+    parameter_name = 'cohort'
+    
+    def lookups(self, request, model_admin):
+        model = model_admin.model
+        program_slug, slug = model._meta.program_slug, model._meta.form_slug
+        for cohort in Cohort.objects.filter(form__slug=slug,
+                                            form__program__slug=program_slug):
+            yield (cohort.id, cohort.name)
+    
+    def queryset(self, request, queryset):
+        if not self.value(): return queryset
+        cohort_member = CohortMember.objects.filter(object_id=OuterRef('pk'),
+                                                    cohort=self.value())
+        return queryset.filter(Exists(cohort_member))
+
+
 class FormSubmissionsAdmin(admin.ModelAdmin):
     list_display = ('submission_id', '_created', '_modified')
+    list_filter = (CohortListFilter,)
     
     def has_module_permission(self, request):
         return False # it's linked to by ProgramFormsAdmin, don't show in index

@@ -37,7 +37,7 @@ def form_published_changed(sender, **kwargs):
         
         model = create_proxy_model(form.model,
                                    form.program.db_slug + '_' + form.db_slug,
-                                   program_slug=slug,
+                                   program_slug=slug, form_slug=form.slug,
                                    verbose_name=form.slug+' submission',
                                    verbose_name_plural=form.slug+' submissions')
         site.register(model, FormSubmissionsAdmin)
