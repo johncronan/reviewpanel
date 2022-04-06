@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q, Count, Exists, Subquery, OuterRef
+from django.db.models import F, Q, Count, Exists, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -273,7 +273,7 @@ class CohortListFilter(admin.SimpleListFilter):
 
 
 class FormSubmissionsAdmin(admin.ModelAdmin):
-    list_display = ('submission_id', 'site_link', '_created', '_submitted')
+    list_display = ('submission_id', '_created', '_submitted', 'site_link')
     list_filter = (CohortListFilter,)
     actions = ['add_to_cohort']
     
@@ -292,7 +292,7 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
         metrics = Metric.objects.filter(admin_enabled=True,
                                         input__cohort__form=form)
         if cohort_id and cohort_id.isdigit():
-            metrics = metrics.filter(input__cohorts=int(cohort_id))
+            metrics = metrics.filter(input__cohort=int(cohort_id))
         return metrics
     
     def get_queryset(self, request):
@@ -301,28 +301,45 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
         metrics = self.get_metrics(request)
         scores = Score.objects.all()
         for metric in metrics:
-            name = 'metric_' + metric.input.name + '_' + metric.name
+            name = f'metric_{metric.input.name}_{metric.name}'
             annotation = metric.annotation(scores, object_id='pk')
             queryset = queryset.annotate(**{name: annotation})
         
         return queryset
     
     def get_list_display(self, request):
-        fields = super().get_list_display(request)
+        fields = list(super().get_list_display(request))
         
-        metrics = self.get_metrics(request)
-        for metric in metrics.order_by('position', 'pk'):
-            def field_callable(name, field):
-                @admin.display(description=name, ordering=field)
-                def callable(self, obj): return getattr(obj, field)
+        metrics, divisors, ret = self.get_metrics(request), {}, []
+        for metric in metrics.order_by('input', '-count_is_divisor'):
+            def field_callable(desc, field, divisor_field=None):
+                @admin.display(description=desc, ordering=field)
+                def callable(self, obj):
+                    v = getattr(obj, field)
+                    if divisor_field:
+                        fv = getattr(obj, divisor_field)
+                        if fv: v = f'{v} ({v/fv*100:.1f}%)'
+                    return v
                 return callable
             
             field_name = 'metric_' + metric.input.name + '_' + metric.name
-            c = field_callable(metric.name, field_name)
+            input_id, divisor_name = metric.input_id, None
+            if metric.type == Metric.MetricType.COUNT and input_id in divisors:
+                divisor_name = divisors[metric.input_id]
+            if metric.count_is_divisor: divisors[input_id] = field_name
+
+            c = field_callable(metric.name, field_name, divisor_name)
             # Django will reject the ordering if value isn't a field or method:
             setattr(self, field_name, types.MethodType(c, self))
-            fields += (field_name,)
-        return fields
+            
+            rec = (field_name, metric.position)
+            for i, v in enumerate(ret):
+                if v[1] > metric.position:
+                    ret.insert(i, rec)
+                    rec = None
+                    break
+            if rec: ret.append(rec)
+        return fields + [ v[0] for v in ret ]
     
     @admin.display(description='ID')
     def submission_id(self, obj):
