@@ -218,7 +218,7 @@ class ScoreAdmin(admin.ModelAdmin):
 
 class FormChangeList(ChangeList):
     def url_for_result(self, result):
-        name = result.program.slug + '_' + result.slug
+        name = result.program.db_slug + '_' + result.db_slug
         return reverse('admin:%s_%s_changelist' % (self.opts.app_label, name),
                        current_app=self.model_admin.admin_site.name)
 
