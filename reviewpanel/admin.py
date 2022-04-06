@@ -11,6 +11,7 @@ from django.urls import path, reverse
 from django.utils.safestring import mark_safe
 from django_admin_inline_paginator.admin import TabularInlinePaginated
 from functools import partial
+import types
 
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
@@ -240,6 +241,8 @@ class ProgramFormsAdmin(admin.ModelAdmin):
         slug = self.model._meta.program_slug
         forms = self.model.objects.exclude(status=Form.Status.DRAFT)
         forms = forms.filter(program__slug=slug)
+        
+        # w/ SubmissionRecord we can get totals for multiple forms using 1 table
         args = {'program__slug': slug, 'form': OuterRef('slug')}
         args.update(type=SubmissionRecord.RecordType.SUBMISSION, deleted=False)
         subquery = SubmissionRecord.objects.filter(**args)
@@ -281,8 +284,45 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None): return False
     def has_delete_permission(self, request, obj=None): return False
     
+    def get_metrics(self, request):
+        fs, ps = self.model._meta.form_slug, self.model._meta.program_slug
+        form = Form.objects.get(slug=fs, program__slug=ps)
+        cohort_id = request.GET.get('cohort')
+        
+        metrics = Metric.objects.filter(admin_enabled=True,
+                                        input__cohort__form=form)
+        if cohort_id and cohort_id.isdigit():
+            metrics = metrics.filter(input__cohorts=int(cohort_id))
+        return metrics
+    
     def get_queryset(self, request):
-        return self.model.objects.exclude(_submitted__isnull=True)
+        queryset = self.model.objects.exclude(_submitted__isnull=True)
+        
+        metrics = self.get_metrics(request)
+        scores = Score.objects.all()
+        for metric in metrics:
+            name = 'metric_' + metric.input.name + '_' + metric.name
+            annotation = metric.annotation(scores, object_id='pk')
+            queryset = queryset.annotate(**{name: annotation})
+        
+        return queryset
+    
+    def get_list_display(self, request):
+        fields = super().get_list_display(request)
+        
+        metrics = self.get_metrics(request)
+        for metric in metrics.order_by('position', 'pk'):
+            def field_callable(name, field):
+                @admin.display(description=name, ordering=field)
+                def callable(self, obj): return getattr(obj, field)
+                return callable
+            
+            field_name = 'metric_' + metric.input.name + '_' + metric.name
+            c = field_callable(metric.name, field_name)
+            # Django will reject the ordering if value isn't a field or method:
+            setattr(self, field_name, types.MethodType(c, self))
+            fields += (field_name,)
+        return fields
     
     @admin.display(description='ID')
     def submission_id(self, obj):

@@ -1,5 +1,7 @@
 from django.db import models
-from django.db.models import UniqueConstraint, Subquery
+from django.db.models import UniqueConstraint, Subquery, OuterRef, Count, \
+    Avg, StdDev, Max, Min
+from django.db.models.functions import Coalesce
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, \
@@ -211,6 +213,8 @@ class Metric(models.Model):
     name = models.SlugField(max_length=20, allow_unicode=True)
     type = models.CharField(max_length=16, choices=MetricType.choices,
                             default=MetricType.COUNT)
+    cohort = models.ForeignKey('Cohort', models.CASCADE, null=True, blank=True,
+                               related_name='+')
     count_value = models.PositiveIntegerField(null=True, blank=True)
     count_is_divisor = models.BooleanField(default=False)
     boolean_invert = models.BooleanField(default=False)
@@ -220,6 +224,31 @@ class Metric(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def aggregate(self):
+        if self.type == self.MetricType.COUNT: return Count
+        elif self.type == self.MetricType.AVG: return Avg
+        elif self.type == self.MetricType.STDDEV: return StdDev
+        elif self.type == self.MetricType.MAX: return Max
+        elif self.type == self.MetricType.MIN: return Min
+    
+    def annotation(self, queryset, **kwargs):
+        qs = queryset.filter(input=self.input,
+                             **{ k: OuterRef(kwargs[k]) for k in kwargs })
+        if self.cohort: qs = qs.filter(cohort=self.cohort)
+        
+        if self.type == self.MetricType.COUNT and self.count_value is not None:
+            qs = qs.filter(value=self.count_value)
+        elif self.input.type != Input.InputType.BOOLEAN:
+            qs = qs.filter(value__gt=0)
+        
+        qs = qs.values(*kwargs.keys())
+        metric_subq = qs.annotate(v=self.aggregate()('value')).values('v')
+        expr = Subquery(metric_subq)
+        
+        if self.type == self.MetricType.COUNT: expr = Coalesce(expr, 0)
+        # TODO boolean invert
+        return expr
 
 
 class Panel(models.Model):
@@ -286,7 +315,7 @@ class Cohort(models.Model):
 class CohortMember(models.Model):
     cohort = models.ForeignKey(Cohort, models.CASCADE)
     content_type = models.ForeignKey(ContentType, models.CASCADE)
-    object_id = models.UUIDField()
+    object_id = models.UUIDField(db_index=True)
     member = GenericForeignKey()
     
     def __str__(self):
@@ -316,7 +345,7 @@ class Score(models.Model):
     form = models.ForeignKey(Form, models.CASCADE, related_name='scores',
                              related_query_name='score')
     content_type = models.ForeignKey(ContentType, models.CASCADE)
-    object_id = models.UUIDField()
+    object_id = models.UUIDField(db_index=True)
     submission = GenericForeignKey()
     cohort = models.ForeignKey(Cohort, models.CASCADE, related_name='scores',
                                related_query_name='score')
