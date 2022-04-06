@@ -172,6 +172,13 @@ class CohortAdmin(admin.ModelAdmin):
             if not isinstance(inline, CohortMemberInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
     
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        if change: # save the cohort again with an updated size count
+            obj = form.instance
+            obj.size = obj.cohortmember_set.count()
+            self.save_model(request, obj, form, change)
+    
     def primary_input(self, obj):
         input = obj.inputs.order_by('_rank')[:1]
         return input[0] if input else None
