@@ -8,6 +8,7 @@ from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404
 from django.urls import path, reverse
+from django.utils.safestring import mark_safe
 from django_admin_inline_paginator.admin import TabularInlinePaginated
 from functools import partial
 
@@ -15,7 +16,7 @@ from formative.admin import site
 from formative.models import Form, SubmissionRecord
 from .forms import ReferencesFormSet, ReferenceForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
-    Panel, Cohort, CohortMember, Score
+    Panel, Cohort, CohortMember, Score, Metric
 
 
 class TemplateSectionInline(admin.StackedInline):
@@ -89,11 +90,17 @@ class PresentationAdmin(admin.ModelAdmin):
                 yield inline.get_formset(request, obj), inline
 
 
+class MetricInline(admin.StackedInline):
+    model = Metric
+    extra = 0
+
+
 @admin.register(Input, site=site)
 class InputAdmin(admin.ModelAdmin):
     list_display = ('name', 'form')
     list_filter = ('form',)
     exclude = ('_rank',)
+    inlines = [MetricInline]
 
 
 @admin.action(description='Add users to panel')
@@ -218,7 +225,7 @@ class ScoreAdmin(admin.ModelAdmin):
 
 class FormChangeList(ChangeList):
     def url_for_result(self, result):
-        name = result.program.slug + '_' + result.slug
+        name = result.program.db_slug + '_' + result.db_slug
         return reverse('admin:%s_%s_changelist' % (self.opts.app_label, name),
                        current_app=self.model_admin.admin_site.name)
 
@@ -263,7 +270,7 @@ class CohortListFilter(admin.SimpleListFilter):
 
 
 class FormSubmissionsAdmin(admin.ModelAdmin):
-    list_display = ('submission_id', '_created', '_modified', '_submitted')
+    list_display = ('submission_id', 'site_link', '_created', '_submitted')
     list_filter = (CohortListFilter,)
     actions = ['add_to_cohort']
     
@@ -280,6 +287,11 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     @admin.display(description='ID')
     def submission_id(self, obj):
         return str(obj)
+    
+    @admin.display(description='link')
+    def site_link(self, obj):
+        # TODO show only if cohort selected; then use its presentation for link
+        return mark_safe(f'<a href="todo">view</a>')
     
     @admin.action(description='Add submissions to cohort')
     def add_to_cohort(self, request, queryset):

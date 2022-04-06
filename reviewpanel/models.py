@@ -191,6 +191,37 @@ class Input(RankedModel):
         return Input.objects.filter(form=self.form)
 
 
+class Metric(models.Model):
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['input', 'name'],
+                             name='unique_metric_name')
+        ]
+        ordering = ['input', 'position', 'pk']
+    
+    class MetricType(models.TextChoices):
+        COUNT = 'count', _('count')
+        AVG = 'avg', _('average')
+        STDDEV = 'stddev', _('standard deviation')
+        MAX = 'max', _('maximum')
+        MIN = 'min', _('minimum')
+    
+    input = models.ForeignKey(Input, models.CASCADE,
+                              related_name='inputs', related_query_name='input')
+    name = models.SlugField(max_length=20, allow_unicode=True)
+    type = models.CharField(max_length=16, choices=MetricType.choices,
+                            default=MetricType.COUNT)
+    count_value = models.PositiveIntegerField(null=True, blank=True)
+    count_is_divisor = models.BooleanField(default=False)
+    boolean_invert = models.BooleanField(default=False)
+    position = models.PositiveIntegerField(default=1)
+    admin_enabled = models.BooleanField(default=True)
+    panelist_enabled = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return self.name
+
+
 class Panel(models.Model):
     class Meta:
         constraints = [

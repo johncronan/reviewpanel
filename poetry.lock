@@ -91,6 +91,20 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
+name = "django-admin-inline-paginator"
+version = "0.3.0"
+description = "The \"Django Admin Inline Paginator\" is simple way to paginate your inline in django admin"
+category = "main"
+optional = false
+python-versions = ">=3.3"
+
+[package.dependencies]
+django = "*"
+
+[package.extras]
+dev = ["django", "django-mock-queries", "pylint", "pytest", "pytest-cov", "pytest-pylint", "pytest-watch"]
+
+[[package]]
 name = "django-better-admin-arrayfield"
 version = "1.4.2"
 description = "Better ArrayField widget for admin"
@@ -177,7 +191,7 @@ dev = ["future (==0.17.1)", "numpy (==1.16.4)", "pytest-mock (==1.10.4)", "pytes
 
 [[package]]
 name = "formative"
-version = "0.9.1"
+version = "0.9.2"
 description = "Self-hosted web app for collecting form responses and files"
 category = "main"
 optional = false
@@ -186,6 +200,7 @@ python-versions = ">=3.8,<4.0"
 [package.dependencies]
 "backports.zoneinfo" = {version = "*", markers = "python_version >= \"3.8\" and python_version < \"3.9\""}
 django = ">=4.0,<5.0"
+django-admin-inline-paginator = "*"
 django-better-admin-arrayfield = ">=1.4.2,<2.0.0"
 django-environ = "*"
 django-jazzmin = "*"
@@ -204,7 +219,7 @@ redis = "*"
 whitenoise = ">=6.0.0,<7.0.0"
 
 [package.extras]
-reviewpanel = ["reviewpanel (>=0.6.1,<0.7.0)"]
+reviewpanel = ["reviewpanel (>=0.6.5,<0.7.0)"]
 
 [[package]]
 name = "future"
@@ -529,6 +544,9 @@ django = [
     {file = "Django-4.0.3-py3-none-any.whl", hash = "sha256:1239218849e922033a35d2a2f777cb8bee18bd725416744074f455f34ff50d0c"},
     {file = "Django-4.0.3.tar.gz", hash = "sha256:77ff2e7050e3324c9b67e29b6707754566f58514112a9ac73310f60cd5261930"},
 ]
+django-admin-inline-paginator = [
+    {file = "django-admin-inline-paginator-0.3.0.tar.gz", hash = "sha256:283e701db35064b9a2afb5675f3c59f0c8f57059364471f61638d835fe17218b"},
+]
 django-better-admin-arrayfield = [
     {file = "django-better-admin-arrayfield-1.4.2.tar.gz", hash = "sha256:b45423e51bbc0aa31ef658248c058ca8b533a541be4dee9fb8bcd059f8a10a58"},
     {file = "django_better_admin_arrayfield-1.4.2-py2.py3-none-any.whl", hash = "sha256:bfeaa0fa8210a7ea95ee996a6caaa59ecd0c923269f573e6d8319c28dcac5c88"},
@@ -562,8 +580,8 @@ ffmpeg-python = [
     {file = "ffmpeg_python-0.2.0-py3-none-any.whl", hash = "sha256:ac441a0404e053f8b6a1113a77c0f452f1cfc62f6344a769475ffdc0f56c23c5"},
 ]
 formative = [
-    {file = "formative-0.9.1-py3-none-any.whl", hash = "sha256:e77a2bcc673b43012fe113d08a0826e8d0b291b2f82df42e6ac89c12257d4a49"},
-    {file = "formative-0.9.1.tar.gz", hash = "sha256:0d6ebbbd153acb87327a03e00a2fec1498a2d1145e4ec4657c58f7b46681ea73"},
+    {file = "formative-0.9.2-py3-none-any.whl", hash = "sha256:a70556cb08aa2bb4c4c58b1b3e5a7c1ee45a6385a9c9e38688d3ebec2f1517a0"},
+    {file = "formative-0.9.2.tar.gz", hash = "sha256:339d4e0571375481a939ec324f97008a6544cd5d61d8dc82696b13736480d845"},
 ]
 future = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
