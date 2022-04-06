@@ -1,0 +1,36 @@
+{% extends "admin/formative/confirmation.html" %}
+
+{% block cardtitle %}Add Submissions to Cohort{% endblock %}
+
+{% block cardcontent %}
+    <p>
+      Select a cohort to add the submissions to:
+    </p>
+    {{ form.as_p }}
+{% endblock %}
+
+{% block rowcontent %}
+    <div class="col-12 col-sm-9">
+      <h4>Submissions</h4>
+      <ol>
+        {{ submissions|slice:':20'|unordered_list }}
+        {% if submissions|length > 20 %}<li>...</li>{% endif %}
+      </ol>
+      {% for submission in submissions %}
+      <input type="hidden" name="_selected_action" value="{{ submission.pk }}">
+      {% endfor %}
+    </div>
+{% endblock %}
+
+{% block formcontrols %}
+    <input type="hidden" name="action" value="add_to_cohort">
+    <div class="form-group">
+      <input type="submit" name="add"
+             class="btn {{ jazzmin_ui.button_classes.danger }}
+                    form-control" value="Add Submissions">
+    </div>
+    <div class="form-group">
+      <a href="#" class="btn {{ jazzmin_ui.button_classes.primary }}
+                         cancel-link form-control">Cancel</a>
+    </div>
+{% endblock %}
