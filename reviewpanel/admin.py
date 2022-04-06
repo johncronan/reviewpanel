@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Count, Exists, Subquery, OuterRef
@@ -8,6 +8,7 @@ from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404
 from django.urls import path, reverse
+from django_admin_inline_paginator.admin import TabularInlinePaginated
 from functools import partial
 
 from formative.admin import site
@@ -100,8 +101,8 @@ def add_to_panel(modeladmin, request, queryset):
     if 'panel' in request.POST:
         panel = get_object_or_404(Panel, id=int(request.POST['panel']))
         panel.panelists.add(*queryset)
-        modeladmin.message_user(request,
-                                f'Users added to panel "{panel.name}".')
+        msg = f'Users added to panel "{panel.name}".',
+        modeladmin.message_user(request, msg, messages.SUCCESS)
         return HttpResponseRedirect(request.get_full_path())
     
     class PanelForm(forms.Form):
@@ -131,11 +132,32 @@ class PanelAdmin(admin.ModelAdmin):
     exclude = ('panelists',)
 
 
-class CohortMemberInline(admin.TabularInline):
+class CohortMemberInline(TabularInlinePaginated):
     model = CohortMember
     extra = 0
+    per_page = 100
+    can_delete = True
+    exclude = ('content_type', 'object_id')
+    readonly_fields = ('email', 'submitted')
     
-#    def get_formset(self, request, obj=None, **kwargs): TODO
+    def has_add_permission(self, request, obj=None):
+        return False
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        match = request.resolver_match
+        cohort = Cohort.objects.get(pk=match.kwargs['object_id'])
+        model = cohort.form.model
+        obj = model.objects.values('pk').filter(pk=OuterRef('object_id'))
+        qs = queryset.annotate(email=Subquery(obj.values('_email')),
+                               submitted=Subquery(obj.values('_submitted')))
+        return qs.order_by('-submitted')
+    
+    def email(self, object):
+        return object.email # TODO: link to the submission change view
+    
+    def submitted(self, object):
+        return object.submitted
 
 
 @admin.register(Cohort, site=site)
@@ -234,7 +256,7 @@ class CohortListFilter(admin.SimpleListFilter):
 
 
 class FormSubmissionsAdmin(admin.ModelAdmin):
-    list_display = ('submission_id', '_created', '_modified')
+    list_display = ('submission_id', '_created', '_modified', '_submitted')
     list_filter = (CohortListFilter,)
     actions = ['add_to_cohort']
     
@@ -268,7 +290,7 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
             cohort.save()
             
             msg = f'Submissions added to cohort "{cohort.name}".'
-            self.message_user(request, msg)
+            self.message_user(request, msg, messages.SUCCESS)
             return HttpResponseRedirect(request.get_full_path())
         
         fs, ps = self.model._meta.form_slug, self.model._meta.program_slug
