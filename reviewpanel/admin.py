@@ -143,7 +143,7 @@ class PanelAdmin(admin.ModelAdmin):
 class CohortMemberInline(TabularInlinePaginated):
     model = CohortMember
     extra = 0
-    per_page = 400
+    per_page = 100
     can_delete = True
     exclude = ('content_type', 'object_id')
     readonly_fields = ('email', 'submitted')
@@ -275,6 +275,7 @@ class CohortListFilter(admin.SimpleListFilter):
 class FormSubmissionsAdmin(admin.ModelAdmin):
     list_display = ('submission_id', '_created', '_submitted')
     list_filter = (CohortListFilter,)
+    list_per_page = 400
     actions = ['add_to_cohort']
     
     def has_module_permission(self, request):
@@ -293,7 +294,7 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
                                         input__cohort__form=form)
         if cohort_id and cohort_id.isdigit():
             metrics = metrics.filter(input__cohort=int(cohort_id))
-        return metrics
+        return metrics.distinct()
     
     def get_queryset(self, request):
         queryset = self.model.objects.exclude(_submitted__isnull=True)
