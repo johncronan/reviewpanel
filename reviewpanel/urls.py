@@ -1,6 +1,7 @@
 from django.urls import path, include
 
-from .views import ProgramView, FormView, FormInfoView, SubmissionView
+from .views import ProgramView, FormView, FormInfoView, SubmissionView, \
+    SubmissionAdminView
 
 
 review_patterns = [
@@ -14,7 +15,9 @@ review_patterns = [
         ), name='form_index'),
         path('<uuid:pk>/', SubmissionView.as_view(), name='submission'),
         path('<uuid:pk>/skips', SubmissionView.as_view(skips=True),
-             name='submission_skips')
+             name='submission_skips'),
+        path('<uuid:pk>/<int:presentation>/', SubmissionAdminView.as_view(),
+             name='submission_admin')
     ])),
     path('<slug:slug>/', ProgramView.as_view(), name='program_index'),
     path('', ProgramView.as_view(show_all=True), name='index')

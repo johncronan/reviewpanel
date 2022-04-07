@@ -143,7 +143,7 @@ class PanelAdmin(admin.ModelAdmin):
 class CohortMemberInline(TabularInlinePaginated):
     model = CohortMember
     extra = 0
-    per_page = 100
+    per_page = 400
     can_delete = True
     exclude = ('content_type', 'object_id')
     readonly_fields = ('email', 'submitted')
@@ -273,7 +273,7 @@ class CohortListFilter(admin.SimpleListFilter):
 
 
 class FormSubmissionsAdmin(admin.ModelAdmin):
-    list_display = ('submission_id', '_created', '_submitted', 'site_link')
+    list_display = ('submission_id', '_created', '_submitted')
     list_filter = (CohortListFilter,)
     actions = ['add_to_cohort']
     
@@ -310,6 +310,25 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     def get_list_display(self, request):
         fields = list(super().get_list_display(request))
         
+        cohort_id = request.GET.get('cohort')
+        if cohort_id and cohort_id.isdigit():
+            pres = None
+            try: pres = Presentation.objects.get(cohort__pk=int(cohort_id))
+            except Presentation.DoesNotExist: pass
+            if pres:
+                def link_callable(presentation):
+                    @admin.display(description='link')
+                    def callable(obj):
+                        form = presentation.form
+                        args = {'program_slug': form.program.slug,
+                                'form_slug': form.slug,
+                                'pk': obj.pk, 'presentation': presentation.pk}
+                        url = reverse('plugins:reviewpanel:submission_admin',
+                                      kwargs=args)
+                        return mark_safe(f'<a href="{url}">view</a>')
+                    return callable
+                fields.append(link_callable(pres))
+        
         metrics, divisors, ret = self.get_metrics(request), {}, []
         for metric in metrics.order_by('input', '-count_is_divisor'):
             def field_callable(desc, field, divisor_field=None):
@@ -344,11 +363,6 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     @admin.display(description='ID')
     def submission_id(self, obj):
         return str(obj)
-    
-    @admin.display(description='link')
-    def site_link(self, obj):
-        # TODO show only if cohort selected; then use its presentation for link
-        return mark_safe(f'<a href="todo">view</a>')
     
     @admin.action(description='Add submissions to cohort')
     def add_to_cohort(self, request, queryset):

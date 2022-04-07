@@ -6,13 +6,13 @@ from django.db.models.functions import Coalesce
 from django.db.models.lookups import Exact
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.contenttypes.models import ContentType
 from random import random
 
 from formative.models import Program, Form
 from .forms import ScoresForm
-from .models import Cohort, CohortMember, Score, Input
+from .models import Cohort, CohortMember, Score, Input, Presentation
 
 
 URL_PREFIX = 'plugins:reviewpanel:'
@@ -220,8 +220,49 @@ class SubmissionObjectMixin(generic.detail.SingleObjectMixin):
         return form.model.objects.all()
 
 
+class SubmissionContextMixin:
+    def submission_context(self, pres):
+        form, references = pres.form, pres.references.order_by('_rank')
+        names = Subquery(references.filter(collection='').values('name'))
+        cnames = Subquery(references.exclude(collection='').values('collection'))
+        blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
+        
+        items = {}
+        if form.item_model:
+            citems = self.object._items.filter(_collection__in=cnames)
+            items = self.object._collections(queryset=citems, form=form)
+        
+        refs, select_refs = {}, {}
+        for ref in references:
+            refs.setdefault(ref.section.name, []).append(ref)
+            
+            if not ref.collection: continue
+            if ref.collection not in items: items[ref.collection] = []
+            section = ref.select_section if ref.select_section else ref.section
+            section_refs = select_refs.setdefault(section.name, {})
+            collection = section_refs.setdefault(ref.collection, ([], []))
+            
+            if ref.is_file: collection[0].append(ref)
+            else: collection[1].append(ref)
+        
+        sections = []
+        for section in pres.template.sections.order_by('-y'):
+            selectors = {}
+            # a map from collection to array of refs that want a selector here
+            if section.name in select_refs:
+                selectors = { col: v[0]+v[1]
+                              for col, v in select_refs[section.name].items() }
+            sections.append((section,
+                             refs[section.name] if section.name in refs else [],
+                             selectors))
+        return {
+            'blocks': { b.name: b for b in blocks },
+            'items': items, 'sections': sections
+        }
+            
+    
 class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
-                           generic.DetailView):
+                           generic.DetailView, SubmissionContextMixin):
     template_name = 'reviewpanel/submission.html'
     
     def render_to_response(self, context, **kwargs):
@@ -266,11 +307,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         
         query = Cohort.objects.select_related('presentation__template')
         cohort = query.get(pk=score.cohort_id)
-        pres, inputs = cohort.presentation, cohort.inputs.order_by('_rank')
-        form, references = pres.form, pres.references.order_by('_rank')
-        names = Subquery(references.filter(collection='').values('name'))
-        cnames = Subquery(references.exclude(collection='').values('collection'))
-        blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
+        form, inputs = cohort.presentation.form, cohort.inputs.order_by('_rank')
         
         apps = CohortMember.objects.filter(cohort__panel__panelists=user,
                                            cohort__status=Cohort.Status.ACTIVE,
@@ -298,40 +335,12 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
                 if val: initial[score.input.name] = val
         scores_form = ScoresForm(inputs=inputs, allow_skip=cohort.allow_skip,
                                  initial=initial)
-        items = {}
-        if form.item_model:
-            citems = self.object._items.filter(_collection__in=cnames)
-            items = self.object._collections(queryset=citems, form=form)
         
-        refs, select_refs = {}, {}
-        for ref in references:
-            refs.setdefault(ref.section.name, []).append(ref)
-            
-            if not ref.collection: continue
-            if ref.collection not in items: items[ref.collection] = []
-            section = ref.select_section if ref.select_section else ref.section
-            section_refs = select_refs.setdefault(section.name, {})
-            collection = section_refs.setdefault(ref.collection, ([], []))
-            
-            if ref.is_file: collection[0].append(ref)
-            else: collection[1].append(ref)
-            
-        sections = []
-        for section in pres.template.sections.order_by('-y'):
-            selectors = {}
-            # a map from collection to array of refs that want a selector here
-            if section.name in select_refs:
-                selectors = { col: v[0]+v[1]
-                              for col, v in select_refs[section.name].items() }
-            sections.append((section,
-                             refs[section.name] if section.name in refs else [],
-                             selectors))
-        
+        context.update(self.submission_context(cohort.presentation))
         context.update({
-            'cohort': cohort, 'presentation': pres,
-            'blocks': { b.name: b for b in blocks }, 'items': items,
-            'template': pres.template, 'sections': sections,
-            'form': scores_form, 'prev_on': prev_on, 'next_on': next_on,
+            'cohort': cohort, 'presentation': cohort.presentation,
+            'template': cohort.presentation.template, 'form': scores_form,
+            'prev_on': prev_on, 'next_on': next_on,
             'stats': {'scored': counts[False], 'skipped': counts[True],
                       'total': apps_count}
         })
@@ -431,3 +440,23 @@ class SubmissionView(generic.View):
     
     def post(self, req, *args, **kwargs):
         return ScoresFormView.as_view(skips=self.skips)(req, *args, **kwargs)
+
+
+class SubmissionAdminView(UserPassesTestMixin, SubmissionObjectMixin,
+                          generic.DetailView, SubmissionContextMixin):
+    template_name = 'reviewpanel/submission.html'
+    
+    def test_func(self):
+        return self.request.user.is_staff
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        presentation = get_object_or_404(Presentation,
+                                         pk=self.kwargs['presentation'])
+        
+        context.update(self.submission_context(presentation))
+        context.update({
+            'presentation': presentation, 'template': presentation.template
+        })
+        return context
