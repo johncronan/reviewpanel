@@ -336,7 +336,8 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
                 @admin.display(description=desc, ordering=field)
                 def callable(self, obj):
                     v = getattr(obj, field)
-                    if type(v) not in (int, bool): display = f'{v:.3f}'
+                    if v is None: display = '-'
+                    elif type(v) not in (int, bool): display = f'{v:.3f}'
                     else: display = v
                     
                     if divisor_field:
