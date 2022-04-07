@@ -336,10 +336,13 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
                 @admin.display(description=desc, ordering=field)
                 def callable(self, obj):
                     v = getattr(obj, field)
+                    if type(v) not in (int, bool): display = f'{v:.3f}'
+                    else: display = v
+                    
                     if divisor_field:
                         fv = getattr(obj, divisor_field)
-                        if fv: v = f'{v} ({v/fv*100:.1f}%)'
-                    return v
+                        if fv: display = f'{display} ({v/fv*100:.1f}%)'
+                    return display
                 return callable
             
             field_name = 'metric_' + metric.input.name + '_' + metric.name
