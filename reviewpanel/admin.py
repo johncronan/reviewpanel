@@ -311,26 +311,7 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     def get_list_display(self, request):
         fields = list(super().get_list_display(request))
         
-        cohort_id = request.GET.get('cohort')
-        if cohort_id and cohort_id.isdigit():
-            pres = None
-            try: pres = Presentation.objects.get(cohort__pk=int(cohort_id))
-            except Presentation.DoesNotExist: pass
-            if pres:
-                def link_callable(presentation):
-                    @admin.display(description='link')
-                    def callable(obj):
-                        form = presentation.form
-                        args = {'program_slug': form.program.slug,
-                                'form_slug': form.slug,
-                                'pk': obj.pk, 'presentation': presentation.pk}
-                        url = reverse('plugins:reviewpanel:submission_admin',
-                                      kwargs=args)
-                        return mark_safe(f'<a href="{url}">view</a>')
-                    return callable
-                fields.append(link_callable(pres))
-        
-        metrics, divisors, ret = self.get_metrics(request), {}, []
+        metrics, divisors, metric_fields = self.get_metrics(request), {}, []
         for metric in metrics.order_by('input', '-count_is_divisor'):
             def field_callable(desc, field, divisor_field=None):
                 @admin.display(description=desc, ordering=field)
@@ -357,13 +338,32 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
             setattr(self, field_name, types.MethodType(c, self))
             
             rec = (field_name, metric.position)
-            for i, v in enumerate(ret):
+            for i, v in enumerate(metric_fields):
                 if v[1] > metric.position:
-                    ret.insert(i, rec)
+                    metric_fields.insert(i, rec)
                     rec = None
                     break
-            if rec: ret.append(rec)
-        return fields + [ v[0] for v in ret ]
+            if rec: metric_fields.append(rec)
+        
+        cohort_id, end_fields = request.GET.get('cohort'), []
+        if cohort_id and cohort_id.isdigit():
+            pres = None
+            try: pres = Presentation.objects.get(cohort__pk=int(cohort_id))
+            except Presentation.DoesNotExist: pass
+            if pres:
+                def link_callable(presentation):
+                    @admin.display(description='link')
+                    def callable(obj):
+                        form = presentation.form
+                        args = {'program_slug': form.program.slug,
+                                'form_slug': form.slug,
+                                'pk': obj.pk, 'presentation': presentation.pk}
+                        url = reverse('plugins:reviewpanel:submission_admin',
+                                      kwargs=args)
+                        return mark_safe(f'<a href="{url}">view</a>')
+                    return callable
+                end_fields.append(link_callable(pres))
+        return fields + [ v[0] for v in metric_fields ] + end_fields
     
     @admin.display(description='ID')
     def submission_id(self, obj):
