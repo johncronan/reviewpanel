@@ -254,6 +254,45 @@ class ProgramFormsAdmin(admin.ModelAdmin):
         return obj.submitted
 
 
+class BaseScoreFormSet(forms.BaseModelFormSet):
+    def __init__(self, instance=None, *args, **kwargs):
+        self.instance = instance
+        super().__init__(*args, **kwargs)
+        scores = Score.objects.filter(object_id=instance.pk)
+        self.queryset = scores.order_by('created')
+    
+    @classmethod
+    def get_default_prefix(cls):
+        opts = cls.model._meta
+        return opts.app_label + '-' + opts.model_name
+
+
+class SubmissionScoresInline(admin.TabularInline):
+    model = Score
+    formset = BaseScoreFormSet
+    readonly_fields = ('display_val', 'created',)
+    
+    def has_add_permission(self, request, obj=None): return False
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        fields = ('panelist', 'input', 'cohort',)
+        
+        defaults = {
+            'form': self.form, 'formset': self.formset, 'fields': fields,
+            'formfield_callback': partial(self.formfield_for_dbfield,
+                                          request=request),
+            'extra': 0, 'can_delete': False, 'can_order': False
+        }
+        return forms.modelformset_factory(self.model, **defaults)
+    
+    @admin.display(description='value')
+    def display_val(self, obj):
+        if obj.input.type == Input.InputType.TEXT: return obj.text
+        elif obj.input.type == Input.InputType.BOOLEAN: return bool(obj.value)
+        if not obj.value: return '[skipped]'
+        return obj.value
+
+
 class CohortListFilter(admin.SimpleListFilter):
     title = 'cohort'
     parameter_name = 'cohort'
@@ -276,6 +315,7 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     list_display = ('submission_id', '_created', '_submitted')
     list_filter = (CohortListFilter,)
     list_per_page = 400
+    inlines = [SubmissionScoresInline]
     actions = ['add_to_cohort']
     
     def has_module_permission(self, request):
