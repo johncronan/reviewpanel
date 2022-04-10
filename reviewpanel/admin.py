@@ -143,7 +143,7 @@ class PanelAdmin(admin.ModelAdmin):
 class CohortMemberInline(TabularInlinePaginated):
     model = CohortMember
     extra = 0
-    per_page = 400
+    per_page = 100
     can_delete = True
     exclude = ('content_type', 'object_id')
     readonly_fields = ('email', 'submitted')
@@ -214,6 +214,13 @@ class ScoreAdmin(admin.ModelAdmin):
     list_display = ('submission', 'panelist', 'input', 'cohort', 'display_val',
                     'created')
     list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)
+    readonly_fields = ('panelist', 'form', 'submission_link',)
+    
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if obj: return tuple(f for f in fields
+                             if f not in ('content_type', 'object_id'))
+        return fields
     
     @admin.display(ordering='value', description='value')
     def display_val(self, obj):
@@ -222,6 +229,14 @@ class ScoreAdmin(admin.ModelAdmin):
         if obj.input.type == Input.InputType.BOOLEAN: return bool(obj.value)
         if not obj.value: return '[skipped]'
         return obj.value
+    
+    @admin.display(description='submission')
+    def submission_link(self, obj):
+        name = obj.form.program.db_slug + '_' + obj.form.db_slug
+        url = reverse('admin:reviewpanel_%s_change' % (name,),
+                      args=(obj.object_id,),
+                      current_app=self.admin_site.name)
+        return mark_safe(f'<a href="{url}">{obj.submission}</a>')
 
 
 class FormChangeList(ChangeList):
@@ -254,6 +269,45 @@ class ProgramFormsAdmin(admin.ModelAdmin):
         return obj.submitted
 
 
+class BaseScoreFormSet(forms.BaseModelFormSet):
+    def __init__(self, instance=None, *args, **kwargs):
+        self.instance = instance
+        super().__init__(*args, **kwargs)
+        scores = Score.objects.filter(object_id=instance.pk)
+        self.queryset = scores.order_by('created')
+    
+    @classmethod
+    def get_default_prefix(cls):
+        opts = cls.model._meta
+        return opts.app_label + '-' + opts.model_name
+
+
+class SubmissionScoresInline(admin.TabularInline):
+    model = Score
+    formset = BaseScoreFormSet
+    readonly_fields = ('display_val', 'created',)
+    
+    def has_add_permission(self, request, obj=None): return False
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        fields = ('panelist', 'input', 'cohort',)
+        
+        defaults = {
+            'form': self.form, 'formset': self.formset, 'fields': fields,
+            'formfield_callback': partial(self.formfield_for_dbfield,
+                                          request=request),
+            'extra': 0, 'can_delete': False, 'can_order': False
+        }
+        return forms.modelformset_factory(self.model, **defaults)
+    
+    @admin.display(description='value')
+    def display_val(self, obj):
+        if obj.input.type == Input.InputType.TEXT: return obj.text
+        elif obj.input.type == Input.InputType.BOOLEAN: return bool(obj.value)
+        if not obj.value: return '[skipped]'
+        return obj.value
+
+
 class CohortListFilter(admin.SimpleListFilter):
     title = 'cohort'
     parameter_name = 'cohort'
@@ -275,6 +329,8 @@ class CohortListFilter(admin.SimpleListFilter):
 class FormSubmissionsAdmin(admin.ModelAdmin):
     list_display = ('submission_id', '_created', '_submitted')
     list_filter = (CohortListFilter,)
+    list_per_page = 400
+    inlines = [SubmissionScoresInline]
     actions = ['add_to_cohort']
     
     def has_module_permission(self, request):
@@ -293,7 +349,7 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
                                         input__cohort__form=form)
         if cohort_id and cohort_id.isdigit():
             metrics = metrics.filter(input__cohort=int(cohort_id))
-        return metrics
+        return metrics.distinct()
     
     def get_queryset(self, request):
         queryset = self.model.objects.exclude(_submitted__isnull=True)
@@ -310,7 +366,41 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     def get_list_display(self, request):
         fields = list(super().get_list_display(request))
         
-        cohort_id = request.GET.get('cohort')
+        metrics, divisors, metric_fields = self.get_metrics(request), {}, []
+        for metric in metrics.order_by('input', '-count_is_divisor'):
+            def field_callable(desc, field, divisor_field=None):
+                @admin.display(description=desc, ordering=field)
+                def callable(self, obj):
+                    v = getattr(obj, field)
+                    if v is None: display = '-'
+                    elif type(v) not in (int, bool): display = f'{v:.3f}'
+                    else: display = v
+                    
+                    if divisor_field:
+                        fv = getattr(obj, divisor_field)
+                        if fv: display = f'{display} ({v/fv*100:.1f}%)'
+                    return display
+                return callable
+            
+            field_name = 'metric_' + metric.input.name + '_' + metric.name
+            input_id, divisor_name = metric.input_id, None
+            if metric.type == Metric.MetricType.COUNT and input_id in divisors:
+                divisor_name = divisors[metric.input_id]
+            if metric.count_is_divisor: divisors[input_id] = field_name
+
+            c = field_callable(metric.name, field_name, divisor_name)
+            # Django will reject the ordering if value isn't a field or method:
+            setattr(self, field_name, types.MethodType(c, self))
+            
+            rec = (field_name, metric.position)
+            for i, v in enumerate(metric_fields):
+                if v[1] > metric.position:
+                    metric_fields.insert(i, rec)
+                    rec = None
+                    break
+            if rec: metric_fields.append(rec)
+        
+        cohort_id, end_fields = request.GET.get('cohort'), []
         if cohort_id and cohort_id.isdigit():
             pres = None
             try: pres = Presentation.objects.get(cohort__pk=int(cohort_id))
@@ -327,38 +417,8 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
                                       kwargs=args)
                         return mark_safe(f'<a href="{url}">view</a>')
                     return callable
-                fields.append(link_callable(pres))
-        
-        metrics, divisors, ret = self.get_metrics(request), {}, []
-        for metric in metrics.order_by('input', '-count_is_divisor'):
-            def field_callable(desc, field, divisor_field=None):
-                @admin.display(description=desc, ordering=field)
-                def callable(self, obj):
-                    v = getattr(obj, field)
-                    if divisor_field:
-                        fv = getattr(obj, divisor_field)
-                        if fv: v = f'{v} ({v/fv*100:.1f}%)'
-                    return v
-                return callable
-            
-            field_name = 'metric_' + metric.input.name + '_' + metric.name
-            input_id, divisor_name = metric.input_id, None
-            if metric.type == Metric.MetricType.COUNT and input_id in divisors:
-                divisor_name = divisors[metric.input_id]
-            if metric.count_is_divisor: divisors[input_id] = field_name
-
-            c = field_callable(metric.name, field_name, divisor_name)
-            # Django will reject the ordering if value isn't a field or method:
-            setattr(self, field_name, types.MethodType(c, self))
-            
-            rec = (field_name, metric.position)
-            for i, v in enumerate(ret):
-                if v[1] > metric.position:
-                    ret.insert(i, rec)
-                    rec = None
-                    break
-            if rec: ret.append(rec)
-        return fields + [ v[0] for v in ret ]
+                end_fields.append(link_callable(pres))
+        return fields + [ v[0] for v in metric_fields ] + end_fields
     
     @admin.display(description='ID')
     def submission_id(self, obj):
