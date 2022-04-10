@@ -214,6 +214,13 @@ class ScoreAdmin(admin.ModelAdmin):
     list_display = ('submission', 'panelist', 'input', 'cohort', 'display_val',
                     'created')
     list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)
+    readonly_fields = ('panelist', 'form', 'submission_link',)
+    
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if obj: return tuple(f for f in fields
+                             if f not in ('content_type', 'object_id'))
+        return fields
     
     @admin.display(ordering='value', description='value')
     def display_val(self, obj):
@@ -222,6 +229,14 @@ class ScoreAdmin(admin.ModelAdmin):
         if obj.input.type == Input.InputType.BOOLEAN: return bool(obj.value)
         if not obj.value: return '[skipped]'
         return obj.value
+    
+    @admin.display(description='submission')
+    def submission_link(self, obj):
+        name = obj.form.program.db_slug + '_' + obj.form.db_slug
+        url = reverse('admin:reviewpanel_%s_change' % (name,),
+                      args=(obj.object_id,),
+                      current_app=self.admin_site.name)
+        return mark_safe(f'<a href="{url}">{obj.submission}</a>')
 
 
 class FormChangeList(ChangeList):
