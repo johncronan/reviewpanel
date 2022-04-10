@@ -1,9 +1,12 @@
 from django.dispatch import receiver
+from django.contrib.contenttypes.models import ContentType
 
 from formative.admin import site
 from formative.models import Program, Form
-from formative.signals import form_published_changed, register_user_actions
+from formative.signals import form_published_changed, register_user_actions, \
+    all_submissions_pre_delete, all_forms_unpublish
 from .admin import add_to_panel, ProgramFormsAdmin, FormSubmissionsAdmin
+from .models import CohortMember, Score
 
 
 programs_registered, forms_registered = {}, {}
@@ -43,7 +46,24 @@ def form_published_changed(sender, **kwargs):
         site.register(model, FormSubmissionsAdmin)
         forms_registered[model] = True
 
-
 @receiver(register_user_actions, dispatch_uid='reviewpanel_user_action')
 def register_user_actions(sender, **kwargs):
     return {'add_to_panel': add_to_panel}
+
+@receiver(all_submissions_pre_delete, dispatch_uid='reviewpanel_pre_delete')
+def all_submissions_pre_delete(sender, instance, **kwargs):
+    match = None
+    for model in forms_registered:
+        if model._meta.db_table == sender._meta.db_table: match = True
+    if not match: return # all_forms_unpublish has already taken care of it
+    
+    CohortMember.objects.filter(object_id=instance.pk).delete()
+    Score.objects.filter(object_id=instance.pk).delete()
+
+@receiver(all_forms_unpublish, dispatch_uid='reviewpanel_form_unpublish')
+def all_forms_unpublish(sender, content_type, **kwargs):
+    form = sender
+    CohortMember.objects.filter(content_type=content_type).delete()
+    Score.objects.filter(content_type=content_type).delete()
+    
+    # TODO: deactivate any active cohorts

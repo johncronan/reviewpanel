@@ -156,6 +156,8 @@ class CohortMemberInline(TabularInlinePaginated):
         match = request.resolver_match
         cohort = Cohort.objects.get(pk=match.kwargs['object_id'])
         model = cohort.form.model
+        if not model: return queryset
+        
         obj = model.objects.values('pk').filter(pk=OuterRef('object_id'))
         qs = queryset.annotate(email=Subquery(obj.values('_email')),
                                submitted=Subquery(obj.values('_submitted')))
