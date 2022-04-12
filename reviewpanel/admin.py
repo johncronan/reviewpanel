@@ -78,6 +78,7 @@ class ReferenceInline(admin.StackedInline):
 class PresentationAdmin(admin.ModelAdmin):
     list_display = ('name', 'created', 'template', 'form')
     list_filter = ('form',)
+    exclude = ('options',)
     inlines = [ReferenceInline]
     
     def get_formset_kwargs(self, request, obj=None, *args):
@@ -89,6 +90,9 @@ class PresentationAdmin(admin.ModelAdmin):
         for inline in self.get_inline_instances(request, obj):
             if not isinstance(inline, ReferenceInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
+    
+    def view_on_site(self, obj):      # don't need the sites framework
+        return obj.get_absolute_url() # getting in the way at the moment
 
 
 class MetricInline(admin.StackedInline):

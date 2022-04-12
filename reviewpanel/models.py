@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, \
     GenericRelation
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
@@ -86,6 +87,12 @@ class Presentation(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def get_absolute_url(self):
+        form = self.form
+        args = {'program_slug': form.program.slug, 'form_slug': form.slug,
+                'presentation': self.id}
+        return reverse('plugins:reviewpanel:presentation_admin', kwargs=args)
     
     def inputs_section(self):
         if self.no_input: return None

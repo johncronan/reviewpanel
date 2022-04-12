@@ -220,15 +220,15 @@ class SubmissionObjectMixin(generic.detail.SingleObjectMixin):
         return form.model.objects.all()
 
 
-class SubmissionContextMixin:
-    def submission_context(self, pres):
+class PresentationContextMixin:
+    def presentation_context(self, pres):
         form, references = pres.form, pres.references.order_by('_rank')
         names = Subquery(references.filter(collection='').values('name'))
         cnames = Subquery(references.exclude(collection='').values('collection'))
         blocks = form.blocks.filter(Q(name__in=names) | Q(name__in=cnames))
         
         items = {}
-        if form.item_model:
+        if self.object and form.item_model:
             citems = self.object._items.filter(_collection__in=cnames)
             items = self.object._collections(queryset=citems, form=form)
         
@@ -262,7 +262,7 @@ class SubmissionContextMixin:
             
     
 class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
-                           generic.DetailView, SubmissionContextMixin):
+                           generic.DetailView, PresentationContextMixin):
     template_name = 'reviewpanel/submission.html'
     
     def render_to_response(self, context, **kwargs):
@@ -336,7 +336,7 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         scores_form = ScoresForm(inputs=inputs, allow_skip=cohort.allow_skip,
                                  initial=initial)
         
-        context.update(self.submission_context(cohort.presentation))
+        context.update(self.presentation_context(cohort.presentation))
         context.update({
             'cohort': cohort, 'presentation': cohort.presentation,
             'template': cohort.presentation.template, 'form': scores_form,
@@ -443,7 +443,7 @@ class SubmissionView(generic.View):
 
 
 class SubmissionAdminView(UserPassesTestMixin, SubmissionObjectMixin,
-                          generic.DetailView, SubmissionContextMixin):
+                          generic.DetailView, PresentationContextMixin):
     template_name = 'reviewpanel/submission.html'
     
     def test_func(self):
@@ -455,8 +455,23 @@ class SubmissionAdminView(UserPassesTestMixin, SubmissionObjectMixin,
         presentation = get_object_or_404(Presentation,
                                          pk=self.kwargs['presentation'])
         
-        context.update(self.submission_context(presentation))
+        context.update(self.presentation_context(presentation))
         context.update({
             'presentation': presentation, 'template': presentation.template
         })
         return context
+
+
+class PresentationAdminView(SubmissionAdminView):
+    def get_queryset(self):
+        form = get_object_or_404(Form.objects.select_related('program'),
+                                 program__slug=self.kwargs['program_slug'],
+                                 slug=self.kwargs['form_slug'])
+        
+        form.model, form.item_model
+        return form.model.objects.filter(_submitted__isnull=False).order_by('?')
+    
+    def get_object(self):
+        queryset = self.get_queryset()
+        if not queryset: return None
+        return queryset[0]

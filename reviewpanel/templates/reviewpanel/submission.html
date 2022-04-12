@@ -65,11 +65,13 @@
 {% endif %}
 
 <div id="topcenter">
+{% if cohort %}
   {% with pslug=presentation.form.program.slug fslug=presentation.form.slug %}
   <a href="{% url 'plugins:reviewpanel:form_index' pslug fslug %}">
     previous scores
   </a>
   {% endwith %}
+{% endif %}
 </div>
 
 <div id="topright">
@@ -79,6 +81,7 @@
 </div>
 
 <div id="content" class="pagecontent markdown-body">
+{% if submission %}
   {% for section, references, selectors in sections %}
     <div id="section_{{ section.name }}" class="section"
          style="{{ section.inline_style }}">
@@ -93,6 +96,9 @@
       </div>
     </div>
   {% endfor %}
+{% else %}
+  The form '{{ presentation.form }}' doesn't have any submitted apps to preview.
+{% endif %}
 </div>
 
 <div id="modal">
