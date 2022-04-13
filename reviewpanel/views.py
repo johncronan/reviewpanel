@@ -170,25 +170,25 @@ class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
             return reverse(URL_PREFIX + 'submission_skips', kwargs=kwargs)
         
         unscored = None
-        try: unscored = Score.objects.get(panelist=user,
-                                          cohort=cohort, value=None)
+        try: unscored = Score.objects.get(panelist=user, value=None)
         except Score.DoesNotExist: pass
         
         if unscored: cohort, unscored_id = unscored.cohort, unscored.object_id
         else: unscored_id = None
         
+        user_seen = Score.objects.exclude(value=None).filter(panelist=user)
+        active_user_seen = user_seen.filter(cohort__status=Cohort.Status.ACTIVE)
+        members_seen = active_user_seen.values('object_id')
+        
         input = cohort.inputs.order_by('_rank')[0]
         scores = Score.objects.filter(value__gt=0,
                                       form=cohort.form, input=input)
-        user_scored = Score.objects.exclude(value=None).filter(panelist=user)
-        cohort_scored = user_scored.filter(cohort=cohort).values('object_id')
-        
         app_scores = scores.filter(object_id=OuterRef('object_id'))
         app_counts = app_scores.values('object_id').annotate(count=Count('*'))
         counts, members = app_counts.values('count'), cohort.cohortmember_set
-        noscore = members.exclude(object_id__in=Subquery(cohort_scored))
-        apps = noscore.annotate(scores=Coalesce(Subquery(counts), 0),
-                                put_first=Exact(F('object_id'), unscored_id))
+        not_seen = members.exclude(object_id__in=Subquery(members_seen))
+        apps = not_seen.annotate(scores=Coalesce(Subquery(counts), 0),
+                                 put_first=Exact(F('object_id'), unscored_id))
         chosen, first = None, None
         for member in apps.order_by('-put_first', 'scores', '?')[:2]:
             if member.put_first:
