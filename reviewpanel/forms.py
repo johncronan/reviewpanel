@@ -2,7 +2,7 @@ from django import forms
 
 from formative.forms import AdminJSONForm
 from formative.models import FormBlock
-from .models import TemplateSection, Input
+from .models import TemplateSection, Input, Cohort
 
 
 class ReferenceForm(AdminJSONForm):
@@ -31,6 +31,8 @@ class ReferenceForm(AdminJSONForm):
                       'select_section'):
                 self.fields[n].widget = forms.HiddenInput()
         else:
+            self.fields['collection'].disabled = True
+            
             if self.instance.combined or not self.instance.collection:
                 self.fields['select_section'].widget = forms.HiddenInput()
             if not self.instance.collection:
@@ -38,6 +40,8 @@ class ReferenceForm(AdminJSONForm):
                 self.fields['inline_combine'].widget = forms.HiddenInput()
                 
                 form = presentation.form
+                self.fields['name'].choices = [ (n, n) for n in 
+                                                form.submission_blocks() ]
                 try: block = form.blocks.get(name=self.instance.name)
                 except FormBlock.DoesNotExist: return
                 if block.block_type() != 'stock' or not block.stock.composite:
@@ -45,9 +49,14 @@ class ReferenceForm(AdminJSONForm):
                     return
                 
                 self.fields['field'].choices = block.stock.render_choices()
-            else: self.fields['field'].widget = forms.HiddenInput()
-    
-    # TODO: clean method
+            else:
+                choices = []
+                for block in presentation.form.collections():
+                    for f in block.collection_fields():
+                        if (f, f) not in choices: choices.append((f, f))
+                self.fields['name'].choices = [('', '-')] + choices
+                
+                self.fields['field'].widget = forms.HiddenInput()
 
 
 class ReferencesFormSet(forms.models.BaseInlineFormSet):
@@ -75,6 +84,21 @@ class ReferencesFormSet(forms.models.BaseInlineFormSet):
         return form
 
 
+class CohortForm(forms.ModelForm):
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data['status']
+        if status == Cohort.Status.INACTIVE: return cleaned_data
+        
+        if not cleaned_data['panel']:
+            self.add_error('panel',
+                           'Must be specified, unless cohort is inactive.')
+        if status == Cohort.Status.ACTIVE and not cleaned_data['presentation']:
+            self.add_error('presentation',
+                           'Must be specified for an active cohort.')
+        return cleaned_data
+
+
 class ScoresForm(forms.Form):
     def __init__(self, inputs=None, allow_skip=False, *args, **kwargs):
         self.inputs, self.allow_skip = inputs, allow_skip
@@ -98,7 +122,7 @@ class ScoresForm(forms.Form):
     
     def clean(self):
         cleaned_data = super().clean()
-        if not self.allow_skip: return
+        if not self.allow_skip: return cleaned_data
         
         for input in self.inputs:
             val = cleaned_data.get(input.name, None)

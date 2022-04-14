@@ -15,7 +15,7 @@ import types
 
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
-from .forms import ReferencesFormSet, ReferenceForm
+from .forms import ReferencesFormSet, ReferenceForm, CohortForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
     Panel, Cohort, CohortMember, Score, Metric
 
@@ -39,7 +39,7 @@ class ReferenceInline(admin.StackedInline):
     form = ReferenceForm
     
     def get_formset(self, request, obj=None, **kwargs):
-        request._obj_ = obj
+        request._obj_ = obj # TODO the code below could be moved into Form class
         kwargs['formfield_callback'] = partial(self.formfield_for_dbfield,
                                                request=request)
         return super().get_formset(request, obj, **kwargs)
@@ -90,6 +90,14 @@ class PresentationAdmin(admin.ModelAdmin):
         for inline in self.get_inline_instances(request, obj):
             if not isinstance(inline, ReferenceInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
+    
+    def get_deleted_objects(self, objs, request):
+        to_del, models, perms, protected = super().get_deleted_objects(objs,
+                                                                       request)
+        for obj in objs:
+            for cohort in obj.cohorts.filter(status=Cohort.Status.ACTIVE):
+                protected.append(cohort)
+        return to_del, models, perms, protected
     
     def view_on_site(self, obj):      # don't need the sites framework
         return obj.get_absolute_url() # getting in the way at the moment
@@ -142,6 +150,14 @@ class PanelAdmin(admin.ModelAdmin):
     list_filter = ('program',)
     inlines = [PanelistInline]
     exclude = ('panelists',)
+    
+    def get_deleted_objects(self, objs, request):
+        to_del, models, perms, protected = super().get_deleted_objects(objs,
+                                                                       request)
+        for obj in objs:
+            for cohort in obj.cohorts.exclude(status=Cohort.Status.INACTIVE):
+                protected.append(cohort)
+        return to_del, models, perms, protected
 
 
 class CohortMemberInline(TabularInlinePaginated):
@@ -176,6 +192,7 @@ class CohortMemberInline(TabularInlinePaginated):
 
 @admin.register(Cohort, site=site)
 class CohortAdmin(admin.ModelAdmin):
+    form = CohortForm
     list_display = ('name', 'panel', 'status', 'form')
     list_filter = ('panel', 'status', 'form')
     inlines = [CohortMemberInline]
