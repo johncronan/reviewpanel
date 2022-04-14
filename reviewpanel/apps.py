@@ -16,3 +16,6 @@ class ReviewPanelConfig(AppConfig):
     
     def ready(self):
         from . import signals
+    
+    def is_available(self, form=None):
+        return False
