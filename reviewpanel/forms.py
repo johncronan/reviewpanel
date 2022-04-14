@@ -96,6 +96,16 @@ class CohortForm(forms.ModelForm):
         if status == Cohort.Status.ACTIVE and not cleaned_data['presentation']:
             self.add_error('presentation',
                            'Must be specified for an active cohort.')
+        if status == Cohort.Status.ACTIVE:
+            if not cleaned_data['inputs']:
+                self.add_error('inputs', 'There has to be a primary input.')
+            else:
+                inputs = cleaned_data['inputs']
+                qs = Input.objects.filter(pk__in=inputs).order_by('_rank')
+                primary = qs[:1]
+                if not primary or primary[0].type == Input.InputType.TEXT:
+                    self.add_error('inputs',
+                                   "Primary input can't be a text input.")
         return cleaned_data
 
 
