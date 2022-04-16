@@ -1,6 +1,6 @@
 from django import forms
 
-from formative.forms import AdminJSONForm
+from formative.forms import AdminJSONForm, ExportAdminForm
 from formative.models import FormBlock
 from .models import TemplateSection, Input, Cohort
 
@@ -107,6 +107,23 @@ class CohortForm(forms.ModelForm):
                     self.add_error('inputs',
                                    "Primary input can't be a text input.")
         return cleaned_data
+
+
+class MetricsExportForm(ExportAdminForm):
+    def __init__(self, metrics=None, inputs=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        for metric in metrics or []:
+            name = f'metric_{metric.input.name}_{metric.name}'
+            label = f'{metric.input.name} {metric.name}'
+            self.fields[name] = forms.BooleanField(required=False, label=label,
+                                                   initial=True)
+        for input in inputs or []:
+            name = 'input_' + input.name
+            self.fields[name] = forms.ChoiceField(label=input.name,
+                choices=[('no', 'not included'),
+                         ('combine', 'in one column')]
+            )
 
 
 class ScoresForm(forms.Form):

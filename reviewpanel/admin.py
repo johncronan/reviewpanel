@@ -15,9 +15,11 @@ import types
 
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
-from .forms import ReferencesFormSet, ReferenceForm, CohortForm
+from .forms import ReferencesFormSet, ReferenceForm, CohortForm, \
+    MetricsExportForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
     Panel, Cohort, CohortMember, Score, Metric
+from .utils import MetricsTabularExport
 
 
 class TemplateSectionInline(admin.StackedInline):
@@ -237,12 +239,17 @@ class ScoreAdmin(admin.ModelAdmin):
     list_display = ('submission', 'panelist', 'input', 'cohort', 'display_val',
                     'created')
     list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)
-    readonly_fields = ('panelist', 'form', 'submission_link',)
+    readonly_fields = ('submission_link',)
     
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         if obj: return tuple(f for f in fields
                              if f not in ('content_type', 'object_id'))
+        return fields
+    
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        if obj: fields += ('panelist', 'form')
         return fields
     
     @admin.display(ordering='value', description='value')
@@ -354,7 +361,7 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     list_filter = (CohortListFilter,)
     list_per_page = 400
     inlines = [SubmissionScoresInline]
-    actions = ['add_to_cohort']
+    actions = ['add_to_cohort', 'export_csv']
     
     def has_module_permission(self, request):
         return False # it's linked to by ProgramFormsAdmin, don't show in index
@@ -372,12 +379,12 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
                                         input__cohort__form=form)
         if cohort_id and cohort_id.isdigit():
             metrics = metrics.filter(input__cohort=int(cohort_id))
-        return metrics.distinct()
+        return metrics.distinct(), form
     
     def get_queryset(self, request):
         queryset = self.model.objects.exclude(_submitted__isnull=True)
         
-        metrics = self.get_metrics(request)
+        metrics, _ = self.get_metrics(request)
         scores = Score.objects.all()
         for metric in metrics:
             name = f'metric_{metric.input.name}_{metric.name}'
@@ -389,7 +396,8 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     def get_list_display(self, request):
         fields = list(super().get_list_display(request))
         
-        metrics, divisors, metric_fields = self.get_metrics(request), {}, []
+        metrics, _ = self.get_metrics(request)
+        divisors, metric_fields = {}, []
         for metric in metrics.order_by('input', '-count_is_divisor'):
             def field_callable(desc, field, divisor_field=None):
                 @admin.display(description=desc, ordering=field)
@@ -476,5 +484,27 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
             **self.admin_site.each_context(request),
             'opts': self.model._meta, 'submissions': queryset,
             'form': CohortForm(), 'title': 'Add to cohort'
+        }
+        return TemplateResponse(request, template_name, context)
+    
+    @admin.action(description='Export submissions as CSV')
+    def export_csv(self, request, queryset):
+        metrics, program_form = self.get_metrics(request)
+        if '_export' in request.POST:
+            filename = f'{program_form.slug}_export_selected.csv'
+            export = MetricsTabularExport(filename, program_form, queryset,
+                                          **request.POST)
+            return export.response(queryset)
+        
+        inputs = Input.objects.filter(cohort__form=program_form,
+                                      type=Input.InputType.TEXT)
+        
+        template_name = 'admin/formative/export_submissions.html'
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta, 'media': self.media,
+            'submissions': queryset, 'title': 'Export Submissions',
+            'form': MetricsExportForm(program_form=program_form,
+                                      metrics=metrics, inputs=inputs)
         }
         return TemplateResponse(request, template_name, context)
