@@ -56,7 +56,11 @@
       </a>
         </td>
         <td>
-          {% if score.value %}{{ score.value }}{% else %}skipped{% endif %}
+          {% if score.input.type == 'bool' %}
+            {% if score.value %}True{% else %}False{% endif %}
+          {% else %}
+            {% if score.value %}{{ score.value }}{% else %}skipped{% endif %}
+          {% endif %}
         </td>
         <td>{{ score.created }}</td>
       </tr>

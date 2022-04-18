@@ -44,10 +44,12 @@ class ProgramView(LoginRequiredMixin, generic.DetailView):
         
         forms = {}
         for program in programs:
-            q = Score.objects.filter(value__gt=0, panelist=user,
-                                     cohort=OuterRef('pk'))
-            scored = q.annotate(p=primary).filter(input=F('p')).values('cohort')
-            scored_count = scored.annotate(c=Count('*')).values('c')
+            q = Score.objects.filter(panelist=user, cohort=OuterRef('pk'))
+            scored = q.annotate(p=primary).filter(input=F('p'))
+            scored = scored.filter(Q(value__gt=0) |
+                                   Q(input__type=Input.InputType.BOOLEAN))
+            cohort_scored = scored.values('cohort')
+            scored_count = cohort_scored.annotate(c=Count('*')).values('c')
             cohorts_qs = Cohort.objects.filter(form__program=program,
                                                panel__panelists=user)
             vals = cohorts_qs.values('form__slug', 'form__name', 'status')
@@ -108,6 +110,7 @@ class FormInfoView(LoginRequiredMixin, FormObjectMixin, generic.DetailView):
                                            cohort__in=cohorts.values('pk'),
                                            form=self.object).exclude(value=None)
         scores = user_scores.annotate(pri=primary).filter(input=F('pri'))
+        scores = scores.select_related('input')
         
         paginator = Paginator(scores.order_by('created'), SCORES_PER_PAGE)
         page = self.request.GET.get('page', 1)
@@ -163,7 +166,8 @@ class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
         if not cohort:
             scores = Score.objects.exclude(value=None)
             skipped = scores.filter(panelist=user, value=0,
-                                    cohort__in=active_cohorts).order_by('?')[:1]
+                                    cohort__in=active_cohorts).order_by('?')
+            skipped = skipped.exclude(input__type=Input.InputType.BOOLEAN)[:1]
             if not skipped:
                 return reverse(URL_PREFIX + 'form_complete', kwargs=kwargs)
             kwargs['pk'] = str(skipped[0].object_id)
