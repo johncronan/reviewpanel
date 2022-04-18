@@ -48,7 +48,7 @@ class ProgramView(LoginRequiredMixin, generic.DetailView):
             scored = q.annotate(p=primary).filter(input=F('p'))
             scored = scored.filter(Q(value__gt=0) |
                                    Q(input__type=Input.InputType.BOOLEAN))
-            cohort_scored = scored.values('cohort')
+            cohort_scored = scored.exclude(value=None).values('cohort')
             scored_count = cohort_scored.annotate(c=Count('*')).values('c')
             cohorts_qs = Cohort.objects.filter(form__program=program,
                                                panel__panelists=user)
@@ -180,6 +180,7 @@ class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
         if unscored: cohort, unscored_id = unscored.cohort, unscored.object_id
         else: unscored_id = None
         
+        # TODO: seen on primary input, only
         user_seen = Score.objects.exclude(value=None).filter(panelist=user)
         active_user_seen = user_seen.filter(cohort__status=Cohort.Status.ACTIVE)
         members_seen = active_user_seen.values('object_id')
