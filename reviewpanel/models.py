@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import UniqueConstraint, Subquery, OuterRef, Count, \
-    Avg, StdDev, Max, Min
-from django.db.models.functions import Coalesce
+    Avg, StdDev, Max, Min, Func, BooleanField
+from django.db.models.functions import Coalesce, Cast
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, \
@@ -249,12 +249,19 @@ class Metric(models.Model):
         elif self.input.type != Input.InputType.BOOLEAN:
             qs = qs.filter(value__gt=0)
         
+        class Not(Func):
+            function = 'NOT'
+            template = '%(function)s %(expressions)s'
+        
         qs = qs.values(*kwargs.keys())
-        metric_subq = qs.annotate(v=self.aggregate()('value')).values('v')
-        expr = Subquery(metric_subq)
+        val = self.aggregate()('value')
+        if self.input.type == Input.InputType.BOOLEAN:
+            if self.type in (self.MetricType.MAX, self.MetricType.MIN):
+                val = Cast(val, output_field=BooleanField())
+                if self.boolean_invert: val = Not(val)
+        expr = Subquery(qs.annotate(v=val).values('v'))
         
         if self.type == self.MetricType.COUNT: expr = Coalesce(expr, 0)
-        # TODO boolean invert
         return expr
 
 
