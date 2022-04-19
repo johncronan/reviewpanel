@@ -44,10 +44,12 @@ class ProgramView(LoginRequiredMixin, generic.DetailView):
         
         forms = {}
         for program in programs:
-            q = Score.objects.filter(value__gt=0, panelist=user,
-                                     cohort=OuterRef('pk'))
-            scored = q.annotate(p=primary).filter(input=F('p')).values('cohort')
-            scored_count = scored.annotate(c=Count('*')).values('c')
+            q = Score.objects.filter(panelist=user, cohort=OuterRef('pk'))
+            scored = q.annotate(p=primary).filter(input=F('p'))
+            scored = scored.filter(Q(value__gt=0) |
+                                   Q(input__type=Input.InputType.BOOLEAN))
+            cohort_scored = scored.exclude(value=None).values('cohort')
+            scored_count = cohort_scored.annotate(c=Count('*')).values('c')
             cohorts_qs = Cohort.objects.filter(form__program=program,
                                                panel__panelists=user)
             vals = cohorts_qs.values('form__slug', 'form__name', 'status')
@@ -108,6 +110,7 @@ class FormInfoView(LoginRequiredMixin, FormObjectMixin, generic.DetailView):
                                            cohort__in=cohorts.values('pk'),
                                            form=self.object).exclude(value=None)
         scores = user_scores.annotate(pri=primary).filter(input=F('pri'))
+        scores = scores.select_related('input')
         
         paginator = Paginator(scores.order_by('created'), SCORES_PER_PAGE)
         page = self.request.GET.get('page', 1)
@@ -163,7 +166,8 @@ class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
         if not cohort:
             scores = Score.objects.exclude(value=None)
             skipped = scores.filter(panelist=user, value=0,
-                                    cohort__in=active_cohorts).order_by('?')[:1]
+                                    cohort__in=active_cohorts).order_by('?')
+            skipped = skipped.exclude(input__type=Input.InputType.BOOLEAN)[:1]
             if not skipped:
                 return reverse(URL_PREFIX + 'form_complete', kwargs=kwargs)
             kwargs['pk'] = str(skipped[0].object_id)
@@ -176,6 +180,7 @@ class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
         if unscored: cohort, unscored_id = unscored.cohort, unscored.object_id
         else: unscored_id = None
         
+        # TODO: seen on primary input, only
         user_seen = Score.objects.exclude(value=None).filter(panelist=user)
         active_user_seen = user_seen.filter(cohort__status=Cohort.Status.ACTIVE)
         members_seen = active_user_seen.values('object_id')
@@ -186,7 +191,13 @@ class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
         app_scores = scores.filter(object_id=OuterRef('object_id'))
         app_counts = app_scores.values('object_id').annotate(count=Count('*'))
         counts, members = app_counts.values('count'), cohort.cohortmember_set
-        not_seen = members.exclude(object_id__in=Subquery(members_seen))
+        
+        q = cohorts.filter(cohortmember__object_id=OuterRef('object_id'))
+        app_cohort = Subquery(q.order_by('size', '-created').values('pk')[:1])
+        app_members = members.annotate(app_cohort=app_cohort)
+        cohort_apps = app_members.filter(app_cohort=cohort.pk)
+        
+        not_seen = cohort_apps.exclude(object_id__in=Subquery(members_seen))
         apps = not_seen.annotate(scores=Coalesce(Subquery(counts), 0),
                                  put_first=Exact(F('object_id'), unscored_id))
         chosen, first = None, None
