@@ -191,7 +191,13 @@ class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
         app_scores = scores.filter(object_id=OuterRef('object_id'))
         app_counts = app_scores.values('object_id').annotate(count=Count('*'))
         counts, members = app_counts.values('count'), cohort.cohortmember_set
-        not_seen = members.exclude(object_id__in=Subquery(members_seen))
+        
+        q = cohorts.filter(cohortmember__object_id=OuterRef('object_id'))
+        app_cohort = Subquery(q.order_by('size', '-created').values('pk')[:1])
+        app_members = members.annotate(app_cohort=app_cohort)
+        cohort_apps = app_members.filter(app_cohort=cohort.pk)
+        
+        not_seen = cohort_apps.exclude(object_id__in=Subquery(members_seen))
         apps = not_seen.annotate(scores=Coalesce(Subquery(counts), 0),
                                  put_first=Exact(F('object_id'), unscored_id))
         chosen, first = None, None
