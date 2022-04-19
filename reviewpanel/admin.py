@@ -16,7 +16,7 @@ import types
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
 from .forms import ReferencesFormSet, ReferenceForm, CohortForm, \
-    MetricsExportForm
+    PresentationForm, MetricsExportForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
     Panel, Cohort, CohortMember, Score, Metric
 from .utils import MetricsTabularExport
@@ -78,9 +78,9 @@ class ReferenceInline(admin.StackedInline):
 
 @admin.register(Presentation, site=site)
 class PresentationAdmin(admin.ModelAdmin):
+    form = PresentationForm
     list_display = ('name', 'created', 'template', 'form')
     list_filter = ('form',)
-    exclude = ('options',)
     inlines = [ReferenceInline]
     
     def get_formset_kwargs(self, request, obj=None, *args):

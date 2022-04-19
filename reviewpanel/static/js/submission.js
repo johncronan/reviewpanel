@@ -122,8 +122,9 @@ function scoreChange(event) {
 }
 
 if (timer) {
-  document.querySelector('input.primary-input').oninput = scoreChange;
-  (function dec() {
+  let primary = document.querySelector('input.primary-input');
+  if (primary) primary.oninput = scoreChange;
+  if (primary) (function dec() {
     let input = document.querySelector('input[name="next"]');
     if (timer <= 0) return enableForm(input);
     if (document.querySelector('input.primary-input').value) disableForm(input);

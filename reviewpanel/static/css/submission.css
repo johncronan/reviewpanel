@@ -190,13 +190,3 @@ div#topright {
   top: 0;
   right: 0;
 }
-
-/* TODO: move to custom css */
-div.ref_main_files_caption {
-  display: block;
-  margin: 0 auto;
-}
-
-div#section_selector {
-  height: 100px;
-}
