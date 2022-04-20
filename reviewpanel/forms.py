@@ -1,6 +1,7 @@
 from django import forms
+from django.contrib.admin import widgets
 
-from formative.forms import AdminJSONForm, ExportAdminForm
+from formative.forms import AdminJSONForm, ExportAdminForm, NegatedBooleanField
 from formative.models import FormBlock
 from .models import TemplateSection, Input, Cohort
 
@@ -82,6 +83,19 @@ class ReferencesFormSet(forms.models.BaseInlineFormSet):
         )
         self.add_fields(form, None)
         return form
+
+
+class PresentationForm(AdminJSONForm):
+    custom_css = forms.CharField(required=False, max_length=5000,
+                                 widget=widgets.AdminTextareaWidget(attrs={
+        'style': 'font-family: monospace;'
+    }))
+    hide_stats = NegatedBooleanField(
+        label='show progress stats', required=False
+    )
+    
+    class Meta:
+        json_fields = {'options': ['custom_css', 'hide_stats']}
 
 
 class CohortForm(forms.ModelForm):

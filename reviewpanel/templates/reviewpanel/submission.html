@@ -45,6 +45,7 @@
     }
     {% endif %}
   {% endfor %}
+{{ presentation.custom_css|striptags|safe }}
   </style>
 {% endblock %}
 

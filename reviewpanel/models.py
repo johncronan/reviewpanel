@@ -98,6 +98,10 @@ class Presentation(models.Model):
         if self.no_input: return None
         return 'inputs'
     
+    def custom_css(self):
+        if 'custom_css' in self.options: return self.options['custom_css']
+        return ''
+    
     def show_stats(self):
         if 'hide_stats' in self.options: return False
         return True
