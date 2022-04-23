@@ -148,7 +148,7 @@ class PresentationPrintExport:
                 for j, score in enumerate(self.values[name][app.pk]):
                     val, input = str(score.value), self.vals_metrics[name].input
                     if input.type == Input.InputType.TEXT: val = score.text
-                    c.drawString(left, t - i*1.3*size, val)
+                    c.drawString(left, t - i*1.3*size, val) # TODO: KeepInFrame
     
     def render_pages(self, queryset, canvas):
         num = self.apps_per_page(canvas)
@@ -185,6 +185,6 @@ class PresentationPrintExport:
         self.render_pages(queryset, canvas)
         
         canvas.save()
-#        disp = f"attachment; filename*=UTF-8''" + quote(self.filename)
-#        response['Content-Disposition'] = disp
+        disp = f"attachment; filename*=UTF-8''" + quote(self.filename)
+        response['Content-Disposition'] = disp
         return response
