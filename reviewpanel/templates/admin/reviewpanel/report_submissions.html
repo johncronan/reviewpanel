@@ -1,0 +1,22 @@
+{% extends "admin/formative/export_submissions.html" %}
+{% load i18n %}
+
+{% block cardcontent %}
+    <p>Select the presentation to use for the export:</p>
+    <table style="margin-bottom: 1em;">{{ form.as_table }}</table>
+{% endblock %}
+
+{% block formcontrols %}
+        <input type="hidden" name="action" value="export_pdf">
+        <div class="form-group">
+          <input type="submit" name="_export"
+                 class="btn {{ jazzmin_ui.button_classes.danger }}
+                        form-control" value="{% trans "Export PDF" %}">
+        </div>
+        <div class="form-group">
+          <a href="#" class="btn {{ jazzmin_ui.button_classes.primary }}
+                             cancel-link form-control">
+            {% trans "Cancel" %}
+          </a>
+        </div>
+{% endblock %}
