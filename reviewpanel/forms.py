@@ -3,7 +3,7 @@ from django.contrib.admin import widgets
 
 from formative.forms import AdminJSONForm, ExportAdminForm, NegatedBooleanField
 from formative.models import FormBlock
-from .models import TemplateSection, Input, Cohort
+from .models import TemplateSection, Presentation, Input, Metric, Cohort
 
 
 class ReferenceForm(AdminJSONForm):
@@ -98,6 +98,24 @@ class PresentationForm(AdminJSONForm):
         json_fields = {'options': ['custom_css', 'hide_stats']}
 
 
+class MetricForm(forms.ModelForm):
+    class Meta:
+        help_texts = {
+            'display_values': 'For panelist view or PDF export, list values ' \
+                              'instead of count.'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if 'instance' in kwargs and kwargs['instance']:
+            if (
+                kwargs['instance'].type != Metric.MetricType.COUNT
+                or kwargs['instance'].count_value is not None
+            ):
+                self.fields['display_values'].widget = forms.HiddenInput()
+
+
 class CohortForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
@@ -138,6 +156,24 @@ class MetricsExportForm(ExportAdminForm):
                 choices=[('no', 'not included'),
                          ('combine', 'in one column')]
             )
+
+
+class PresentationExportForm(forms.Form):
+    presentation = forms.ModelChoiceField(Presentation.objects.all())
+    orientation = forms.ChoiceField(choices=[ (n, n) for n in ('portrait',
+                                                               'landscape') ])
+    
+    def __init__(self, program_form=None, metrics=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        pres = self.fields['presentation']
+        if program_form: pres.queryset = pres.queryset.filter(form=program_form)
+        
+        for metric in metrics or []:
+            name = f'metric_{metric.input.name}_{metric.name}'
+            label = f'{metric.input.name} {metric.name}'
+            self.fields[name] = forms.BooleanField(required=False, label=label,
+                                                   initial=True)
 
 
 class ScoresForm(forms.Form):

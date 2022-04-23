@@ -98,6 +98,9 @@ class Presentation(models.Model):
         if self.no_input: return None
         return 'inputs'
     
+    def metrics_section(self):
+        return 'metrics'
+    
     def custom_css(self):
         if 'custom_css' in self.options: return self.options['custom_css']
         return ''
@@ -232,6 +235,7 @@ class Metric(models.Model):
     position = models.PositiveIntegerField(default=1)
     admin_enabled = models.BooleanField(default=True)
     panelist_enabled = models.BooleanField(default=False)
+    display_values = models.BooleanField(default=False)
     
     def __str__(self):
         return self.name

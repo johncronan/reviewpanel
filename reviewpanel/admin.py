@@ -15,11 +15,11 @@ import types
 
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
-from .forms import ReferencesFormSet, ReferenceForm, CohortForm, \
-    PresentationForm, MetricsExportForm
+from .forms import ReferencesFormSet, ReferenceForm, MetricForm, CohortForm, \
+    PresentationForm, MetricsExportForm, PresentationExportForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
     Panel, Cohort, CohortMember, Score, Metric
-from .utils import MetricsTabularExport
+from .utils import MetricsTabularExport, PresentationPrintExport
 
 
 class TemplateSectionInline(admin.StackedInline):
@@ -107,6 +107,7 @@ class PresentationAdmin(admin.ModelAdmin):
 
 class MetricInline(admin.StackedInline):
     model = Metric
+    form = MetricForm
     extra = 0
 
 
@@ -361,7 +362,7 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     list_filter = (CohortListFilter,)
     list_per_page = 400
     inlines = [SubmissionScoresInline]
-    actions = ['add_to_cohort', 'export_csv']
+    actions = ['add_to_cohort', 'export_csv', 'export_pdf']
     
     def has_module_permission(self, request):
         return False # it's linked to by ProgramFormsAdmin, don't show in index
@@ -370,13 +371,13 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None): return False
     def has_delete_permission(self, request, obj=None): return False
     
-    def get_metrics(self, request):
+    def get_metrics(self, request, **kwargs):
         fs, ps = self.model._meta.form_slug, self.model._meta.program_slug
         form = Form.objects.get(slug=fs, program__slug=ps)
         cohort_id = request.GET.get('cohort')
         
         metrics = Metric.objects.filter(admin_enabled=True,
-                                        input__cohort__form=form)
+                                        input__cohort__form=form, **kwargs)
         if cohort_id and cohort_id.isdigit():
             metrics = metrics.filter(input__cohort=int(cohort_id))
         return metrics.distinct(), form
@@ -503,8 +504,30 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
         context = {
             **self.admin_site.each_context(request),
             'opts': self.model._meta, 'media': self.media,
-            'submissions': queryset, 'title': 'Export Submissions',
+            'submissions': queryset, 'title': 'Export Submissions Data',
             'form': MetricsExportForm(program_form=program_form,
                                       metrics=metrics, inputs=inputs)
+        }
+        return TemplateResponse(request, template_name, context)
+    
+    @admin.action(description='Export submissions as PDF')
+    def export_pdf(self, request, queryset):
+        metrics, form = self.get_metrics(request, panelist_enabled=True)
+        if '_export' in request.POST:
+            pres = get_object_or_404(Presentation,
+                                     id=int(request.POST['presentation']))
+            
+            filename = f'{form.slug}_export.pdf'
+            args = { k: request.POST[k] for k in request.POST
+                     if k == 'orientation' or k.startswith('metric_') }
+            export = PresentationPrintExport(filename, pres, **args)
+            return export.response(queryset)
+        
+        template_name = 'admin/reviewpanel/report_submissions.html'
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta, 'media': self.media,
+            'submissions': queryset, 'title': 'Export Submissions Report',
+            'form': PresentationExportForm(program_form=form, metrics=metrics)
         }
         return TemplateResponse(request, template_name, context)
