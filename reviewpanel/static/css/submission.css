@@ -62,7 +62,6 @@ object.item_document {
 }
 
 div.item-selector {
-  height: 100px;
   width: 100%;
   white-space: nowrap;
   scroll-behavior: smooth;
@@ -79,7 +78,6 @@ div.item-thumb-container {
 
 div.item-thumbnail {
   display: inline-block;
-  height: 100px;
   width: 150px;
   scroll-snap-align: start;
   scroll-snap-stop: always;
@@ -87,8 +85,16 @@ div.item-thumbnail {
 
 div.item-thumbnail img {
   width: 100%;
-  height: 100%;
+  height: 100px;
   object-fit: contain;
+}
+
+div.item-thumbnail .item-label {
+  width: fit-content;
+  margin: 0 auto;
+  height: 53px;
+  line-height: 53px;
+  cursor: default;
 }
 
 button.thumb-advance {

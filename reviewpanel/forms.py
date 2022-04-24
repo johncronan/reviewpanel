@@ -26,7 +26,7 @@ class ReferenceForm(AdminJSONForm):
         super().__init__(*args, **kwargs)
         self.presentation = presentation
         
-        if extra:
+        if extra or self.instance and not self.instance.pk:
             # these are set after the instance gets added, when applicable
             for n in ('field', 'block_combine', 'inline_combine',
                       'select_section'):

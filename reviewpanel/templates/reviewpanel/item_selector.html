@@ -4,14 +4,14 @@
 {% collection_items items collection_name as collection %}
 <div id="sel_{{ section.name }}_{{ collection_name }}"
      class="item-selector-section">
-  <div class="item-selector" data-refs="{{ refs|join_ids:' ' }}">
+  <div class="item-selector" data-refs="{{ refs.0|join_ids:' ' }}">
     <div class="item-thumb-container">
     {% for item in collection %}
       <div class="item-thumbnail" data-id="{{ item|underscore:'id' }}">
-      {% with thumb=item|underscore:'artifact_url' %}
+      {% with thumb=item|underscore:'artifact_url' referenced_file=refs.1 %}
         {% if thumb %}
           <img src="{{ thumb }}">
-        {% else %}
+        {% elif referenced_file %}
           {% with meta=item|underscore:'filemeta' %}
           {% if meta.type == 'audio' %}
             <img src="{% static "img/rp_icons/audio.png" %}">
@@ -19,8 +19,9 @@
             <img src="{% static "img/rp_icons/generic.png" %}">
           {% endif %}
           {% endwith %}
+        {% else %}
+          <div class="item-label">item {{ forloop.counter }}</div>
         {% endif %}
-        {# TODO: item models without a file (look at refs.0) #}
       {% endwith %}
       </div>
     {% endfor %}

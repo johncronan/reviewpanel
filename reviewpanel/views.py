@@ -261,7 +261,7 @@ class PresentationContextMixin:
             selectors = {}
             # a map from collection to array of refs that want a selector here
             if section.name in select_refs:
-                selectors = { col: v[0]+v[1]
+                selectors = { col: (v[0]+v[1], bool(v[0])) # + whether have file
                               for col, v in select_refs[section.name].items() }
             sections.append((section,
                              refs[section.name] if section.name in refs else [],
