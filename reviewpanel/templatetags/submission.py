@@ -31,6 +31,10 @@ def dereference_item_file(item):
     return item._file, item._filemeta
 
 @register.filter
+def items(val): # dict.items in template doesn't work if 'items' is a key
+    return val.items()
+
+@register.filter
 def join_ids(values, char):
     return char.join([ str(v.pk) for v in values ])
 

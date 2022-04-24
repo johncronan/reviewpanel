@@ -1,4 +1,5 @@
 {% load submission %}
+{% load rputils %}
 
 {% for ref in references %}
   {% if ref.block_label %}
@@ -46,6 +47,6 @@
 
 {% endfor %}
 
-{% for collection_name, refs in selectors.items %}
+{% for collection_name, refs in selectors|items %}
   {% include "./item_selector.html" %}
 {% endfor %}

@@ -1,6 +1,8 @@
 {% extends "reviewpanel/base.html" %}
 {% load static %}
 
+{% block vpwidth %}{% if template.min_width %}{{ template.min_width }}{% else %}{{ block.super }}{% endif %}{% endblock %}
+
 {% block title %}{{ presentation.form.name }}{% endblock %}
 
 {% block style %}
@@ -12,6 +14,7 @@
       position: relative;
       top: 80px;
       width: 100%;
+    {% if template.min_width %}min-width: {{ template.min_width }}px;{% endif %}
     {% if template.max_width %}max-width: {{ template.max_width }}px;{% endif %}
       margin: 0 auto;
     }

@@ -148,7 +148,7 @@ class PresentationPrintExport:
                 for j, score in enumerate(self.values[name][app.pk]):
                     val, input = str(score.value), self.vals_metrics[name].input
                     if input.type == Input.InputType.TEXT: val = score.text
-                    c.drawString(left, t - i*1.3*size, val) # TODO: KeepInFrame
+                    c.drawString(left, t - j*1.3*size, val) # TODO: KeepInFrame
     
     def render_pages(self, queryset, canvas):
         num = self.apps_per_page(canvas)
@@ -157,7 +157,7 @@ class PresentationPrintExport:
         
         page, i = 1, 0
         for app in queryset:
-            y = height - (i % num) * incr - 20
+            y = height - (i % num) * incr - 0
             if i and not (i % num):
                 canvas.showPage()
                 page += 1
