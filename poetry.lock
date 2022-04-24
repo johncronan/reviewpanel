@@ -199,7 +199,7 @@ dev = ["future (==0.17.1)", "numpy (==1.16.4)", "pytest-mock (==1.10.4)", "pytes
 
 [[package]]
 name = "formative"
-version = "0.9.5"
+version = "0.9.6"
 description = "Self-hosted web app for collecting form responses and files"
 category = "main"
 optional = false
@@ -220,17 +220,17 @@ ffmpeg-python = "*"
 gunicorn = "*"
 markdown = "*"
 markdown-link-attr-modifier = ">=0.2.0,<0.3.0"
-pikepdf = ">=5.1.1"
 pillow = "*"
 psycopg2 = "*"
 pyexcel = "*"
 pyexcel-io = "*"
 pyexcel-ods3 = "*"
 redis = "*"
+reportlab = "*"
 whitenoise = ">=6.0.0,<7.0.0"
 
 [package.extras]
-reviewpanel = ["reviewpanel (>=0.7.8,<0.8.0)"]
+reviewpanel = ["reviewpanel (>=0.8.0,<0.9.0)"]
 
 [[package]]
 name = "future"
@@ -335,24 +335,6 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
-
-[[package]]
-name = "pikepdf"
-version = "5.1.2"
-description = "Read and write PDFs with Python, powered by qpdf"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[package.dependencies]
-lxml = ">=4.0"
-packaging = ">=20"
-Pillow = ">=6.0,<10"
-
-[package.extras]
-docs = ["gitpython", "pygithub", "Sphinx (>=3)", "ipython", "matplotlib", "pybind11", "requests", "setuptools-scm", "sphinx-issues", "sphinx-panels", "sphinx-rtd-theme", "tomli"]
-mypy = ["lxml-stubs", "types-pillow", "types-requests", "types-setuptools"]
-test = ["Pillow (>=9,<10)", "attrs (>=20.2.0)", "coverage", "hypothesis (>=5,<7)", "psutil (>=5,<6)", "pybind11", "pytest (>=6,<8)", "pytest-cov (>=2.10.1,<3)", "pytest-timeout (>=1.4.2)", "pytest-xdist (>=1.28,<3)", "python-dateutil (>=2.8.0)", "tomli", "Pillow (!=9.1.0)", "python-xmp-toolkit (>=2.0.1)"]
 
 [[package]]
 name = "pillow"
@@ -516,6 +498,20 @@ hiredis = ["hiredis (>=1.0.0)"]
 ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==20.0.1)", "requests (>=2.26.0)"]
 
 [[package]]
+name = "reportlab"
+version = "3.6.9"
+description = "The Reportlab Toolkit"
+category = "main"
+optional = false
+python-versions = ">=3.7, <4"
+
+[package.dependencies]
+pillow = ">=4.0.0"
+
+[package.extras]
+rlpycairo = ["rlPyCairo (>=0.0.5)"]
+
+[[package]]
 name = "sqlparse"
 version = "0.4.2"
 description = "A non-validating SQL parser."
@@ -581,7 +577,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "29272288e1aecb5d54e14b2ae7a0c5be40bdba1798a401a9dce7526d62e60200"
+content-hash = "962dde19b6def39f51f30fefbd233663a5fc1f85262d5b44bafc9552cb9471fb"
 
 [metadata.files]
 asgiref = [
@@ -670,8 +666,8 @@ ffmpeg-python = [
     {file = "ffmpeg_python-0.2.0-py3-none-any.whl", hash = "sha256:ac441a0404e053f8b6a1113a77c0f452f1cfc62f6344a769475ffdc0f56c23c5"},
 ]
 formative = [
-    {file = "formative-0.9.5-py3-none-any.whl", hash = "sha256:f0349589cb50ca0d4c90e00e50729775d4f2c34b76759065049d1341ccc87b67"},
-    {file = "formative-0.9.5.tar.gz", hash = "sha256:549635acbc9b03f9bf5fb874760731181bb0e2da5334b0f1ec3723d50a9cbe22"},
+    {file = "formative-0.9.6-py3-none-any.whl", hash = "sha256:2347a1d3a0b2457aa20043c26498ab64a2f9b8d7764b4527673aa5490baafde6"},
+    {file = "formative-0.9.6.tar.gz", hash = "sha256:87ff275422bb2974a35687fdad3baa55a3518b8efcf86ada080b407a7822016b"},
 ]
 future = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
@@ -767,35 +763,6 @@ packaging = [
     {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
     {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
 ]
-pikepdf = [
-    {file = "pikepdf-5.1.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1d3141916dc9efc433fd22beba544f67a53a805800c3ff902baffa398ef4c85e"},
-    {file = "pikepdf-5.1.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c277066938ca0ddb2bfe75874ef8dd3aa259936fe15c4cf7d4282f89ba82ab3a"},
-    {file = "pikepdf-5.1.2-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5626312990a894c5db3a269455f7eb98df5f59188dde1797c0e352d60fdf89af"},
-    {file = "pikepdf-5.1.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1bef3512be59fe0f481375b7eb415ca51ee7c80555031401f5f17ee3392e4add"},
-    {file = "pikepdf-5.1.2-cp310-cp310-win32.whl", hash = "sha256:a8f3e2229e2683497fe4ccc4af06050c125160a11bb3562b6c4ddaee4d0cc5c5"},
-    {file = "pikepdf-5.1.2-cp310-cp310-win_amd64.whl", hash = "sha256:fe386d93345c9b5a9690f7a7bfb789a5ec5467c34402628e10bda8a4f5bac73e"},
-    {file = "pikepdf-5.1.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:3052df8514d26b676c50e65afc49a1d260c43a08c322c75cc2592c10a9a5b26d"},
-    {file = "pikepdf-5.1.2-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:12b5b3cfc649e2542576a7e55c11e245278f14f727f116904893e54329102867"},
-    {file = "pikepdf-5.1.2-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:55330c24b8e04ee09f1bc514c2b6107bb03a5eeb0b74929a61100cd6be22ae29"},
-    {file = "pikepdf-5.1.2-cp37-cp37m-win32.whl", hash = "sha256:f40703b6267aa43d7f72468fa0a3b505ffff74ece2a4c69cfd3c90e023c41381"},
-    {file = "pikepdf-5.1.2-cp37-cp37m-win_amd64.whl", hash = "sha256:553cf11933fdfe07fdd357ab40b9732db102e921b27c1065239308d42b7b858f"},
-    {file = "pikepdf-5.1.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:1b8f68a75c0a6f6d4d102d0821365ae2aaa9ab635c6eb6c840569a56b1a266f4"},
-    {file = "pikepdf-5.1.2-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f45cc4544bbd4c308a525a6bb8e2e29b3f849803ee557c6e35c684447f0a92e5"},
-    {file = "pikepdf-5.1.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:607deb1181a7cf5369cf70edfc41574d46c0a17c0cac1f6234272bd4cb3487e4"},
-    {file = "pikepdf-5.1.2-cp38-cp38-win32.whl", hash = "sha256:356d5554516a295fc10db3f25cfde4e92326f6d015da55d71b84f5ced2a07a5a"},
-    {file = "pikepdf-5.1.2-cp38-cp38-win_amd64.whl", hash = "sha256:92ca9191680eccc21697e9e9c218e600ab31e7c24f6125749738c10ae2dc7c07"},
-    {file = "pikepdf-5.1.2-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:9bcaf96e2f571f0fc7e3178cdf1bcca7c13e5c68128e8246031226d47ecf23f1"},
-    {file = "pikepdf-5.1.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:f8ccda5ee992c73f647bcd96c9aa30f5eb9e8a6c5bdd6e3dcb29ebbffbe01a69"},
-    {file = "pikepdf-5.1.2-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:60bdd49e6251f8c99989e6769d4ad29b209c1eaf88090f49d4b30fba98442e40"},
-    {file = "pikepdf-5.1.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:73a7cc3c42609e00393b9d4e1b9ee132f528060254a174bf18ef31a154be0386"},
-    {file = "pikepdf-5.1.2-cp39-cp39-win32.whl", hash = "sha256:ea927afe7cb04cc7ade30b961f528ef53e8d9cf467dcc4639cf944fef872a1a1"},
-    {file = "pikepdf-5.1.2-cp39-cp39-win_amd64.whl", hash = "sha256:101ec256a8d312c17decae52226cf32a3e7dc834583134300c2f4e60b70e6e91"},
-    {file = "pikepdf-5.1.2-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:59c24a65c94693ab4a7e92f4809f847b57461120256c083054e61c99c4952e84"},
-    {file = "pikepdf-5.1.2-pp37-pypy37_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:e064010b733b0a2ec4ec97982cd2887f9025292f2d228c6d5e6eca9d84851e53"},
-    {file = "pikepdf-5.1.2-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:75f1e2917b4d2d6573fe3d1c3b2ec70829b64515b2f723f5c3bebcdd65761e6c"},
-    {file = "pikepdf-5.1.2-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:c532542a99757d9f41df0cf1fc8f64a044d0eb822822cc069c80be35731df275"},
-    {file = "pikepdf-5.1.2.tar.gz", hash = "sha256:dfa89bd86e01413531c1d7d201fb01f0e62b52ea926a8e8ca6f99f86ed761e95"},
-]
 pillow = [
     {file = "Pillow-9.1.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:af79d3fde1fc2e33561166d62e3b63f0cc3e47b5a3a2e5fea40d4917754734ea"},
     {file = "Pillow-9.1.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:55dd1cf09a1fd7c7b78425967aacae9b0d70125f7d3ab973fadc7b5abc3de652"},
@@ -888,6 +855,44 @@ python-stdnum = [
 redis = [
     {file = "redis-4.2.2-py3-none-any.whl", hash = "sha256:4e95f4ec5f49e636efcf20061a5a9110c20852f607cfca6865c07aaa8a739ee2"},
     {file = "redis-4.2.2.tar.gz", hash = "sha256:0107dc8e98a4f1d1d4aa00100e044287f77121a1e6d2085545c4b7fa94a7a27f"},
+]
+reportlab = [
+    {file = "reportlab-3.6.9-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:4ba8eebfa4383e4680d6e7e6dba9c45c1fe19bbc0a754db4d84823f1a9511e56"},
+    {file = "reportlab-3.6.9-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:37dda88dbe16dd3f4f9039464637cce66e462c0b95e5763dbd45ac5799136d3a"},
+    {file = "reportlab-3.6.9-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:10681d89a0ca37bb4036283fb8c0efac9ac1b22265dbdf350bda0448be33e00c"},
+    {file = "reportlab-3.6.9-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:cebd0b28a0e875a9ce789514700f80659269ecf2a8fcef0aa10b8ae52b40474a"},
+    {file = "reportlab-3.6.9-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:1ec84055cf2c83783958b74eadf0e577eb0cd9088c8b5d536e9ddc0f4a9f8c70"},
+    {file = "reportlab-3.6.9-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:90f74627cafecf3924741ab8b0690a19df4214eb56b1cfce2dc74a15c9744034"},
+    {file = "reportlab-3.6.9-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b2c2fd861f10b2cd49ccf29a31da9ad5c3b95aa437804e4fd0351ed4eb695f74"},
+    {file = "reportlab-3.6.9-cp310-cp310-win32.whl", hash = "sha256:e492e87886423192af1fafde23907bcd9d2fdccfc22f67e18aa5c73db3a380a3"},
+    {file = "reportlab-3.6.9-cp310-cp310-win_amd64.whl", hash = "sha256:d1bf9455aff37beb421a4447d89d6dd77bb46f677c0bab4eb0272cdb79faad2f"},
+    {file = "reportlab-3.6.9-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:0a7f2b7232c3ffb451b649d55c51a6dd0c8104ad7bbcfe355addf7619705e7fa"},
+    {file = "reportlab-3.6.9-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1967dbc9930917d75c39784712a137d432dbc2e5ca9e132a2453319c2619ccff"},
+    {file = "reportlab-3.6.9-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:32a5c5cd9625a40feec956f460355b4813bc3187c4f8dc9efd9f1a7f8f854e34"},
+    {file = "reportlab-3.6.9-cp37-cp37m-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:8cb82b6d14ad4bd915acacc8f114c6a7bab8b9b1503cabb930e433ebd320f90c"},
+    {file = "reportlab-3.6.9-cp37-cp37m-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:0e767cf4507ca8eed7dde8511f0889b0f19f160a2bdf9ef07742b2aaeceed9f2"},
+    {file = "reportlab-3.6.9-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6a114761ad3ba6e0cdfacf14a8fb2cb8f5713b115ca1f0c17f3cd638d0a5b4bd"},
+    {file = "reportlab-3.6.9-cp37-cp37m-win32.whl", hash = "sha256:bbaab798991863952c593c0459dcb82e0aade837675593310e13cba2ce7fb45a"},
+    {file = "reportlab-3.6.9-cp37-cp37m-win_amd64.whl", hash = "sha256:ab1ffe4ec7be99ad348791116d436610afdc7a9a02a968997f31eaa62eaadad8"},
+    {file = "reportlab-3.6.9-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:496f42840604255ce06777bc129048b3bab966213bbac4f07fbe4ceb6a2e0482"},
+    {file = "reportlab-3.6.9-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:a441afdfe31870b964bccde042d7172ed3c0077f519bbf3ed7d9d34c406b6b91"},
+    {file = "reportlab-3.6.9-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4fbe23ac870adf90544d2014c572dba6ec4d772afad6505bb91f171ddad12839"},
+    {file = "reportlab-3.6.9-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:de724c78f4eb1363b1195dce85a2a8806e7509b69ac5c842a714d942ea534d63"},
+    {file = "reportlab-3.6.9-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:713574da534b6ce73d884f1574c35a565e438af4888fcc75e752f1de02e356a7"},
+    {file = "reportlab-3.6.9-cp38-cp38-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:193671445b4885128d8800d3e416eb2fa4fd89bafae08cc9889c0752fe5ad8c2"},
+    {file = "reportlab-3.6.9-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ff0e014a3a3fe286c642ef51213c41684a156b9ed293ef205e8890bc1dbbfdc7"},
+    {file = "reportlab-3.6.9-cp38-cp38-win32.whl", hash = "sha256:23f5aed2d212096f2fe95d56f868d63f839a08bf7e389237e644d93981274222"},
+    {file = "reportlab-3.6.9-cp38-cp38-win_amd64.whl", hash = "sha256:09b2ca175129a34292399fc4c6a8b1739f6c5946368fcaa6f931d69385b2f720"},
+    {file = "reportlab-3.6.9-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:cb21666fc9edec9716553bfcfe0c30d1bbbe2731910a96f07ec65652974e5f83"},
+    {file = "reportlab-3.6.9-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:d927bf802bf53c1b5a3878a22e9be310900877984e7c436a3a99bdd19cfec4c3"},
+    {file = "reportlab-3.6.9-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ce3a3aad287c8532f62223f5720b5504e31abe3dce52a27bd2a25f508c0d846e"},
+    {file = "reportlab-3.6.9-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c9a5f63bc381c0f945402ef4c1bccc74a8eed28f6be6596704b1db7d82ec89fe"},
+    {file = "reportlab-3.6.9-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:50f8e30f5410efc69b0217261b1f21912888da392a4549e79c7aaaac85f01bfa"},
+    {file = "reportlab-3.6.9-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:15294435f786968bcdf1a7a67bcc23a136470b6ea26919497f5c76ff0f653041"},
+    {file = "reportlab-3.6.9-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e9b5e9115363545a727d8ebe7e4b94f7cf6f26113261a269d50d88b8db4eb726"},
+    {file = "reportlab-3.6.9-cp39-cp39-win32.whl", hash = "sha256:e1fc1b1f5d9d1c2e18b5e60602dfa7854b2330ba0efc312ef605abf588abea9c"},
+    {file = "reportlab-3.6.9-cp39-cp39-win_amd64.whl", hash = "sha256:92a6613af9877e3ad2a1c5a16a122514a4f9f8d9b91b1f22e7fa0fa796617b36"},
+    {file = "reportlab-3.6.9.tar.gz", hash = "sha256:5d0cc3682456ad213150f6dbffe7d47eab737d809e517c316103376be548fb84"},
 ]
 sqlparse = [
     {file = "sqlparse-0.4.2-py3-none-any.whl", hash = "sha256:48719e356bb8b42991bdbb1e8b83223757b93789c00910a616a071910ca4a64d"},
