@@ -1,5 +1,6 @@
 from django.db.models import Subquery
 from django.http import HttpResponse
+import pyexcel
 from reportlab.pdfgen import canvas as pdfgen_canvas
 from reportlab.lib import units, styles
 from reportlab import platypus
@@ -13,8 +14,8 @@ from .templatetags.submission import dereference_block
 
 
 class MetricsTabularExport(TabularExport):
-    def __init__(self, filename, program_form, queryset, **kwargs):
-        super().__init__(filename, program_form, queryset, **kwargs)
+    def __init__(self, program_form, queryset, **kwargs):
+        super().__init__(program_form, queryset, **kwargs)
         self.metrics, self.inputs = [], []
         
         for name in self.args:
@@ -54,6 +55,66 @@ class MetricsTabularExport(TabularExport):
             row.append("\n".join(vals))
         
         return row
+
+
+class CombinedTabularExport:
+    def __init__(self, queryset, **kwargs):
+        self.args, self.order_by = kwargs, None
+    
+    def book(self, queryset):
+        ret, scores = {}, Score.objects.all()
+
+        for form in queryset:
+            qs = form.model.objects.filter(_submitted__isnull=False)
+            if self.order_by: qs = qs.order_by(self.order_by)
+            
+            args = {}
+            for block in form.submission_blocks():
+                args['block_' + block.name] = True
+            
+            collections = {}
+            for block in form.collections():
+                col = collections.setdefault(block.name, [{}, False, False])
+                for field in block.collection_fields():
+                    col[0][f'cfield_{block.name}.{field}'] = True
+                if block.fixed: col[2] = True
+                if block.has_file: col[1] = True
+            for col_name, (block_args, file, fixed) in collections.items():
+                arg = 'collection_' + col_name
+                if fixed: args[arg] = self.args['fixed_collections']
+                elif file: args[arg] = self.args['file_collections']
+                else: args[arg] = self.args['nonfile_collections']
+                if args[arg] == 'no': continue
+                args.update(block_args)
+            
+            if self.args['metrics']:
+                input_metrics = Metric.objects.filter(admin_enabled=True,
+                                                      input__cohort__form=form)
+                for metric in input_metrics.distinct():
+                    name = f'metric_{metric.input.name}_{metric.name}'
+                    annotation = metric.annotation(scores, object_id='pk')
+                    qs = qs.annotate(**{name: annotation})
+                    args[name] = True
+            
+            if self.args['text_inputs']:
+                inputs = Input.objects.filter(cohort__form=form,
+                                              type=Input.InputType.TEXT)
+                for input in inputs: args['input_' + input.name] = 'combine'
+            
+            export = MetricsTabularExport(form, qs, **args)
+            ret[form.slug] = export.data(qs)
+        return ret
+    
+    def response_ods(self, filename, queryset):
+        book = self.book(queryset)
+        
+        stream = pyexcel.save_book_as(bookdict=book, dest_file_type='ods')
+        mime_type = 'application/vnd.oasis.opendocument.spreadsheet'
+        response = HttpResponse(stream, content_type=mime_type)
+        
+        disp = f"attachment; filename*=UTF-8''" + quote(filename)
+        response['Content-Disposition'] = disp
+        return response
 
 
 class PresentationPrintExport:
@@ -181,7 +242,7 @@ class PresentationPrintExport:
             self.values[name] = { k: list(vals) for k, vals in objects }
         
         response = HttpResponse(content_type='application/pdf')
-        canvas = pdfgen_canvas.Canvas(response)
+        canvas = pdfgen_canvas.Canvas(response) # TODO landscape orientation
         self.render_pages(queryset, canvas)
         
         canvas.save()

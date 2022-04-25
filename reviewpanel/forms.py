@@ -158,6 +158,18 @@ class MetricsExportForm(ExportAdminForm):
             )
 
 
+CC_CHOICES = [('no', 'not included'), ('repeat', 'repeated columns'),
+               ('combine', 'in one column')]
+
+class CombinedExportForm(forms.Form):
+    fixed_collections = forms.ChoiceField(choices=CC_CHOICES, initial='combine')
+    file_collections = forms.ChoiceField(choices=CC_CHOICES)
+    nonfile_collections = forms.ChoiceField(choices=CC_CHOICES)
+    metrics = forms.BooleanField(required=False, initial=True)
+    text_inputs = forms.BooleanField(required=False, label='text inputs ' \
+                                                           '(combined)')
+
+
 class PresentationExportForm(forms.Form):
     presentation = forms.ModelChoiceField(Presentation.objects.all())
     orientation = forms.ChoiceField(choices=[ (n, n) for n in ('portrait',
