@@ -16,10 +16,12 @@ import types
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
 from .forms import ReferencesFormSet, ReferenceForm, MetricForm, CohortForm, \
-    PresentationForm, MetricsExportForm, PresentationExportForm
+    PresentationForm, MetricsExportForm, CombinedExportForm, \
+    PresentationExportForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
     Panel, Cohort, CohortMember, Score, Metric
-from .utils import MetricsTabularExport, PresentationPrintExport
+from .utils import MetricsTabularExport, CombinedTabularExport, \
+     PresentationPrintExport
 
 
 class TemplateSectionInline(admin.StackedInline):
@@ -279,6 +281,11 @@ class FormChangeList(ChangeList):
 class ProgramFormsAdmin(admin.ModelAdmin):
     list_display = ('name', 'submitted', 'created', 'modified')
     list_select_related = ('program',)
+    actions = ['export_ods']
+    
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return False
     
     def get_changelist(self, request, **kwargs):
         return FormChangeList
@@ -298,6 +305,25 @@ class ProgramFormsAdmin(admin.ModelAdmin):
     
     def submitted(self, obj):
         return obj.submitted
+    
+    @admin.action(description='Export form submissions as ODS')
+    def export_ods(self, request, queryset):
+        if '_export' in request.POST:
+            filename = f'{self.model._meta.program_slug}_export_selected.ods'
+            args = { k: request.POST[k] for k in request.POST
+                     if k in ('metrics',
+                              'text_inputs') or k.endswith('_collections') }
+            export = CombinedTabularExport(queryset, **args)
+            return export.response_ods(filename, queryset)
+        
+        template_name = 'admin/reviewpanel/export_forms.html'
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta, 'media': self.media,
+            'forms': queryset, 'title': 'Export Form Submissions',
+            'form': CombinedExportForm()
+        }
+        return TemplateResponse(request, template_name, context)
 
 
 class BaseScoreFormSet(forms.BaseModelFormSet):
@@ -492,10 +518,13 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     def export_csv(self, request, queryset):
         metrics, program_form = self.get_metrics(request)
         if '_export' in request.POST:
+            args = { k: request.POST[k] for k in request.POST
+                     if k.startswith('block_') or k.startswith('collection_')
+                        or k.startswith('cfield_') or k.startswith('metric_')
+                        or k.startswith('input_') }
+            export = MetricsTabularExport(program_form, queryset, **args)
             filename = f'{program_form.slug}_export_selected.csv'
-            export = MetricsTabularExport(filename, program_form, queryset,
-                                          **request.POST)
-            return export.response(queryset)
+            return export.csv_response(filename, queryset)
         
         inputs = Input.objects.filter(cohort__form=program_form,
                                       type=Input.InputType.TEXT)
