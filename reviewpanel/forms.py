@@ -141,6 +141,12 @@ class CohortForm(forms.ModelForm):
         return cleaned_data
 
 
+class CohortStatusForm(forms.Form):
+    status = forms.ChoiceField(choices=Cohort.Status.choices[1:])
+    message = forms.CharField(required=False,
+                              widget=widgets.AdminTextareaWidget)
+
+
 class MetricsExportForm(ExportAdminForm):
     def __init__(self, metrics=None, inputs=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

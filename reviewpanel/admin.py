@@ -16,7 +16,7 @@ import types
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
 from .forms import ReferencesFormSet, ReferenceForm, MetricForm, CohortForm, \
-    PresentationForm, MetricsExportForm, CombinedExportForm, \
+    CohortStatusForm, PresentationForm, MetricsExportForm, CombinedExportForm, \
     PresentationExportForm
 from .models import Template, TemplateSection, Reference, Presentation, Input, \
     Panel, Cohort, CohortMember, Score, Metric
@@ -202,6 +202,7 @@ class CohortAdmin(admin.ModelAdmin):
     list_filter = ('panel', 'status', 'form')
     inlines = [CohortMemberInline]
     readonly_fields = ('primary_input', 'size')
+    actions = ['change_status']
     
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
@@ -218,6 +219,26 @@ class CohortAdmin(admin.ModelAdmin):
     def primary_input(self, obj):
         input = obj.inputs.order_by('_rank')[:1]
         return input[0] if input else None
+    
+    @admin.action(description='Change status of selected cohorts')
+    def change_status(self, request, queryset):
+        if '_submit' in request.POST:
+            status, message = request.POST['status'], request.POST['message']
+            if message: n = queryset.update(status=status, message=message)
+            else: n = queryset.update(status=status)
+            
+            msg = f'Status changed for {n} cohorts.'
+            self.message_user(request, msg, messages.SUCCESS)
+            return HttpResponseRedirect(request.get_full_path())
+        
+        template_name = 'admin/reviewpanel/cohort_status.html'
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta, 'media': self.media,
+            'cohorts': queryset, 'title': 'Change Cohort Status',
+            'form': CohortStatusForm()
+        }
+        return TemplateResponse(request, template_name, context)
 
 
 class ScoreTypeFilter(admin.SimpleListFilter):
