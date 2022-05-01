@@ -93,6 +93,8 @@
         <div class="content">
           {% if section.name == presentation.inputs_section %}
             {% include "./submission_inputs.html" %}
+          {% elif section.name == presentation.metrics_section %}
+            {% include "./submission_metrics.html" %}
           {% else %}
             {% include "./submission_section.html" %}
           {% endif %}

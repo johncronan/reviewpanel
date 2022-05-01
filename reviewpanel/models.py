@@ -199,6 +199,7 @@ class Input(RankedModel):
     min_num = models.PositiveIntegerField(null=True, blank=True)
     max_num = models.PositiveIntegerField(null=True, blank=True)
     max_chars = models.PositiveIntegerField(null=True, blank=True)
+    show_in_index = models.BooleanField(default=False)
     
     def __str__(self):
         return self.name
@@ -222,8 +223,8 @@ class Metric(models.Model):
         MAX = 'max', _('maximum')
         MIN = 'min', _('minimum')
     
-    input = models.ForeignKey(Input, models.CASCADE,
-                              related_name='inputs', related_query_name='input')
+    input = models.ForeignKey(Input, models.CASCADE, related_name='metrics',
+                              related_query_name='metric')
     name = models.SlugField(max_length=20, allow_unicode=True)
     type = models.CharField(max_length=16, choices=MetricType.choices,
                             default=MetricType.COUNT)

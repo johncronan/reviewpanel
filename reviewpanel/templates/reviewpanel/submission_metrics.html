@@ -1,0 +1,26 @@
+
+<div class="metrics">
+{% for metric, val in metrics %}
+  <div class="panelist-metric"
+     {% if metric.type == 'count' and metric.count_value %}
+       style="height: 100%;"
+     {% endif %}>
+  {% if metric.type == 'count' and metric.count_value %}
+    <div style="height: 80%; position: relative;">
+      {% widthratio val count_max 100 as hv %}
+      <div class="panelist-metric-count"
+           style="height: {% if hv != '0' %}{{ hv }}{% else %}1{% endif %}%;">
+      </div>
+    </div>
+    <div style="height: 20%;">
+      <span style="line-height: 10px; vertical-align: bottom;">
+        {{ metric.count_value }}
+      </span>
+    </div>
+  {% else %}
+    <div style="margin-bottom: 6px;">{{ metric.name }}:</div>
+    <div>{{ val }}</div>
+  {% endif %}
+  </div>
+{% endfor %}
+</div>
