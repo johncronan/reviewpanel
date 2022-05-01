@@ -1,0 +1,36 @@
+{% extends "admin/formative/confirmation.html" %}
+
+{% block cardtitle %}Change Status{% endblock %}
+
+{% block cardcontent %}
+    <p>
+      Setting a new status message is optional.
+    </p>
+    {{ form.as_p }}
+{% endblock %}
+
+{% block rowcontent %}
+    <div class="col-12 col-sm-9">
+      <h4>Cohorts</h4>
+      <ol>
+        {{ cohorts|slice:':20'|unordered_list }}
+        {% if cohorts|length > 20 %}<li>...</li>{% endif %}
+      </ol>
+      {% for cohort in cohorts %}
+      <input type="hidden" name="_selected_action" value="{{ cohort.pk }}">
+      {% endfor %}
+    </div>
+{% endblock %}
+
+{% block formcontrols %}
+    <input type="hidden" name="action" value="change_status">
+    <div class="form-group">
+      <input type="submit" name="_submit"
+             class="btn {{ jazzmin_ui.button_classes.danger }}
+                    form-control" value="Change Status">
+    </div>
+    <div class="form-group">
+      <a href="#" class="btn {{ jazzmin_ui.button_classes.primary }}
+                         cancel-link form-control">Cancel</a>
+    </div>
+{% endblock %}

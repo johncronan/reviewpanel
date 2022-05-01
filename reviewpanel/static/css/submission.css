@@ -136,7 +136,7 @@ div.input-score {
   align-items: center;
 }
 
-div.input-score * {
+div.input-score > * {
   flex: 1;
 }
 
@@ -154,6 +154,29 @@ div.input-score input[type="text"] {
 
 div.input-score:not(:last-child) {
   margin-bottom: 8px;
+}
+
+div.content div.metrics {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+div.content div.metrics > * {
+  flex-grow: 1;
+}
+
+div.panelist-metric {
+  text-align: center;
+}
+
+div.panelist-metric-count {
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  background-color: #222;
 }
 
 div#modal {

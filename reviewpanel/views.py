@@ -6,13 +6,14 @@ from django.db.models.functions import Coalesce
 from django.db.models.lookups import Exact
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.contenttypes.models import ContentType
 from random import random
 
 from formative.models import Program, Form
 from .forms import ScoresForm
-from .models import Cohort, CohortMember, Score, Input, Presentation
+from .models import Cohort, CohortMember, Score, Input, Metric, Presentation
 
 
 URL_PREFIX = 'plugins:reviewpanel:'
@@ -347,11 +348,33 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         scores_form = ScoresForm(inputs=inputs, allow_skip=cohort.allow_skip,
                                  initial=initial)
         
+        metrics = []
+        if inputs:
+            # metrics on primary input only, for now (to ensure single row)
+            metric_objs = inputs[0].metrics.filter(panelist_enabled=True)
+            user_scores = Score.objects.filter(panelist=user, input=inputs[0])
+            queryset = User.objects.filter(pk=user.pk)
+            for metric in metric_objs:
+                name = f'metric_{metric.name}'
+                annotation = metric.annotation(user_scores, panelist='pk')
+                queryset = queryset.annotate(**{name: annotation})
+            
+            def display(v):
+                if v is None: return '-'
+                if type(v) not in (int, bool): return f'{v:.2f}'
+                return v
+            metrics = [ (m, display(getattr(queryset[0], f'metric_{m.name}')))
+                        for m in metric_objs ]
+            count_type = Metric.MetricType.COUNT
+            count_max = max([ m[1] for m in metrics
+                              if m[0].type == count_type and m[0].count_value ])
+        
         context.update(self.presentation_context(cohort.presentation))
         context.update({
             'cohort': cohort, 'presentation': cohort.presentation,
             'template': cohort.presentation.template, 'form': scores_form,
             'prev_on': prev_on, 'next_on': next_on,
+            'metrics': metrics, 'count_max': count_max,
             'stats': {'scored': counts[False], 'skipped': counts[True],
                       'total': apps_count}
         })
