@@ -36,20 +36,13 @@ class TemplateAdmin(admin.ModelAdmin):
     list_filter = ('program',)
     inlines = [TemplateSectionInline]
     
-    def has_add_permission(self, request):
-        site = get_current_site(request)
-        if site and not request.user.is_superuser: return False
-        return super().has_add_permission(request)
+    def has_add_permission(self, request): return request.user.is_superuser
     
     def has_change_permission(self, request, obj=None):
-        site = get_current_site(request)
-        if site and not request.user.is_superuser: return False
-        return super().has_change_permission(request, obj)
+        return request.user.is_superuser
     
     def has_delete_permission(self, request, obj=None):
-        site = get_current_site(request)
-        if site and not request.user.is_superuser: return False
-        return super().has_delete_permission(request, obj)
+        return request.user.is_superuser
 
 
 class ReferenceInline(admin.StackedInline):
@@ -94,8 +87,25 @@ class ReferenceInline(admin.StackedInline):
         return field
 
 
+class FormAttached:
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        
+        qs = form.base_fields['form'].queryset
+        site = get_current_site(request)
+        if site:
+            form.base_fields['form'].queryset = qs.filter(program__sites=site)
+        return form
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        if site: queryset = queryset.filter(form__program__sites=site)
+        return queryset
+
+
 @admin.register(Presentation, site=site)
-class PresentationAdmin(admin.ModelAdmin):
+class PresentationAdmin(FormAttached, admin.ModelAdmin):
     form = PresentationForm
     list_display = ('name', 'created', 'template', 'form')
     list_filter = ('form',)
@@ -111,13 +121,6 @@ class PresentationAdmin(admin.ModelAdmin):
             if not isinstance(inline, ReferenceInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
     
-    def get_queryset(self, request):
-        queryset = super().get_queryset(request)
-        site = get_current_site(request)
-        if site and not request.user.is_superuser:
-            queryset = queryset.filter(form__program__sites=site)
-        return queryset
-    
     def get_deleted_objects(self, objs, request):
         to_del, models, perms, protected = super().get_deleted_objects(objs,
                                                                        request)
@@ -130,25 +133,34 @@ class PresentationAdmin(admin.ModelAdmin):
         return obj.get_absolute_url() # getting in the way at the moment
 
 
+class MetricFormSet(forms.BaseInlineFormSet):
+    def __init__(self, site=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.site = site
+    
+    def get_form_kwargs(self, index):
+        kwargs = super().get_form_kwargs(index)
+        kwargs['site'] = self.site
+        return kwargs
+
 class MetricInline(admin.StackedInline):
     model = Metric
+    formset = MetricFormSet
     form = MetricForm
     extra = 0
 
 
 @admin.register(Input, site=site)
-class InputAdmin(admin.ModelAdmin):
+class InputAdmin(FormAttached, admin.ModelAdmin):
     list_display = ('name', 'form')
     list_filter = ('form',)
     exclude = ('_rank',)
     inlines = [MetricInline]
     
-    def get_queryset(self, request):
-        queryset = super().get_queryset(request)
-        site = get_current_site(request)
-        if site and not request.user.is_superuser:
-            queryset = queryset.filter(form__program__sites=site)
-        return queryset
+    def get_formset_kwargs(self, request, obj=None, *args):
+        kwargs = super().get_formset_kwargs(request, obj, *args)
+        kwargs['site'] = get_current_site(request)
+        return kwargs
 
 
 @admin.action(description='Add users to panel')
@@ -189,9 +201,16 @@ class PanelAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         site = get_current_site(request)
-        if site and not request.user.is_superuser:
-            queryset = queryset.filter(program__sites=site)
+        if site: queryset = queryset.filter(program__sites=site)
         return queryset
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        
+        qs = form.base_fields['program'].queryset
+        site = get_current_site(request)
+        if site: form.base_fields['program'].queryset = qs.filter(sites=site)
+        return form
     
     def get_deleted_objects(self, objs, request):
         to_del, models, perms, protected = super().get_deleted_objects(objs,
@@ -233,7 +252,7 @@ class CohortMemberInline(TabularInlinePaginated):
 
 
 @admin.register(Cohort, site=site)
-class CohortAdmin(admin.ModelAdmin):
+class CohortAdmin(FormAttached, admin.ModelAdmin):
     form = CohortForm
     list_display = ('name', 'panel', 'status', 'form')
     list_filter = ('panel', 'status', 'form')
@@ -246,12 +265,18 @@ class CohortAdmin(admin.ModelAdmin):
             if not isinstance(inline, CohortMemberInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
     
-    def get_queryset(self, request):
-        queryset = super().get_queryset(request)
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
         site = get_current_site(request)
-        if site and not request.user.is_superuser:
-            queryset = queryset.filter(form__program__sites=site)
-        return queryset
+        if not site: return form
+        
+        qs = form.base_fields['presentation'].queryset
+        qs = qs.filter(form__program__sites=site)
+        form.base_fields['presentation'].queryset = qs
+        
+        qs = form.base_fields['panel'].queryset
+        form.base_fields['panel'].queryset = qs.filter(program__sites=site)
+        return form
     
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
@@ -303,7 +328,7 @@ class ScoreTypeFilter(admin.SimpleListFilter):
 
 
 @admin.register(Score, site=site)
-class ScoreAdmin(admin.ModelAdmin):
+class ScoreAdmin(FormAttached, admin.ModelAdmin):
     list_display = ('submission', 'panelist', 'input', 'cohort', 'display_val',
                     'created')
     list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)
@@ -320,12 +345,16 @@ class ScoreAdmin(admin.ModelAdmin):
         if obj: fields += ('panelist', 'form')
         return fields
     
-    def get_queryset(self, request):
-        queryset = super().get_queryset(request)
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
         site = get_current_site(request)
-        if site and not request.user.is_superuser:
-            queryset = queryset.filter(form__program__sites=site)
-        return queryset
+        if not site: return form
+        
+        for name in ('cohort', 'input'):
+            qs = form.base_fields[name].queryset
+            qs = qs.filter(form__program__sites=site)
+            form.base_fields[name].queryset = qs
+        return form
     
     @admin.display(ordering='value', description='value')
     def display_val(self, obj):
@@ -592,9 +621,9 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
         
         template_name = 'admin/reviewpanel/add_to_cohort.html'
         context = {
-            **self.admin_site.each_context(request),
-            'opts': self.model._meta, 'submissions': queryset,
-            'form': CohortForm(), 'title': 'Add to cohort'
+            **self.admin_site.each_context(request), 'title': 'Add to cohort',
+            'opts': self.model._meta, 'media': self.media,
+            'submissions': queryset, 'form': CohortForm()
         }
         return TemplateResponse(request, template_name, context)
     

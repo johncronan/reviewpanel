@@ -105,8 +105,13 @@ class MetricForm(forms.ModelForm):
                               'instead of count.'
         }
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, site=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        if site:
+            qs = self.fields['cohort'].queryset
+            qs = qs.filter(form__program__sites=site)
+            self.fields['cohort'].queryset = qs
         
         if 'instance' in kwargs and kwargs['instance']:
             if (
