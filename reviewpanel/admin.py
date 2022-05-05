@@ -15,6 +15,7 @@ import types
 
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
+from formative.utils import get_current_site
 from .forms import ReferencesFormSet, ReferenceForm, MetricForm, CohortForm, \
     CohortStatusForm, PresentationForm, MetricsExportForm, CombinedExportForm, \
     PresentationExportForm
@@ -34,6 +35,21 @@ class TemplateAdmin(admin.ModelAdmin):
     list_display = ('name', 'program')
     list_filter = ('program',)
     inlines = [TemplateSectionInline]
+    
+    def has_add_permission(self, request):
+        site = get_current_site(request)
+        if site and not request.user.is_superuser: return False
+        return super().has_add_permission(request)
+    
+    def has_change_permission(self, request, obj=None):
+        site = get_current_site(request)
+        if site and not request.user.is_superuser: return False
+        return super().has_change_permission(request, obj)
+    
+    def has_delete_permission(self, request, obj=None):
+        site = get_current_site(request)
+        if site and not request.user.is_superuser: return False
+        return super().has_delete_permission(request, obj)
 
 
 class ReferenceInline(admin.StackedInline):
@@ -95,6 +111,13 @@ class PresentationAdmin(admin.ModelAdmin):
             if not isinstance(inline, ReferenceInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
     
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        if site and not request.user.is_superuser:
+            queryset = queryset.filter(form__program__sites=site)
+        return queryset
+    
     def get_deleted_objects(self, objs, request):
         to_del, models, perms, protected = super().get_deleted_objects(objs,
                                                                        request)
@@ -119,6 +142,13 @@ class InputAdmin(admin.ModelAdmin):
     list_filter = ('form',)
     exclude = ('_rank',)
     inlines = [MetricInline]
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        if site and not request.user.is_superuser:
+            queryset = queryset.filter(form__program__sites=site)
+        return queryset
 
 
 @admin.action(description='Add users to panel')
@@ -155,6 +185,13 @@ class PanelAdmin(admin.ModelAdmin):
     list_filter = ('program',)
     inlines = [PanelistInline]
     exclude = ('panelists',)
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        if site and not request.user.is_superuser:
+            queryset = queryset.filter(program__sites=site)
+        return queryset
     
     def get_deleted_objects(self, objs, request):
         to_del, models, perms, protected = super().get_deleted_objects(objs,
@@ -208,6 +245,13 @@ class CohortAdmin(admin.ModelAdmin):
         for inline in self.get_inline_instances(request, obj):
             if not isinstance(inline, CohortMemberInline) or obj is not None:
                 yield inline.get_formset(request, obj), inline
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        if site and not request.user.is_superuser:
+            queryset = queryset.filter(form__program__sites=site)
+        return queryset
     
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
@@ -276,6 +320,13 @@ class ScoreAdmin(admin.ModelAdmin):
         if obj: fields += ('panelist', 'form')
         return fields
     
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        if site and not request.user.is_superuser:
+            queryset = queryset.filter(form__program__sites=site)
+        return queryset
+    
     @admin.display(ordering='value', description='value')
     def display_val(self, obj):
         if obj.input.type == Input.InputType.TEXT: return obj.text
@@ -303,6 +354,12 @@ class ProgramFormsAdmin(admin.ModelAdmin):
     list_display = ('name', 'submitted', 'created', 'modified')
     list_select_related = ('program',)
     actions = ['export_ods']
+    
+    def has_view_permission(self, request, obj=None):
+        site = get_current_site(request)
+        if not site: return True
+        slug = self.model._meta.program_slug
+        return slug in site.programs.values_list('slug', flat=True)
     
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False
@@ -413,6 +470,12 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
     
     def has_module_permission(self, request):
         return False # it's linked to by ProgramFormsAdmin, don't show in index
+    
+    def has_view_permission(self, request, obj=None):
+        site = get_current_site(request)
+        if not site: return True
+        slug = self.model._meta.program_slug
+        return slug in site.programs.values_list('slug', flat=True)
     
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False
