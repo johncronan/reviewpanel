@@ -6,7 +6,7 @@ from django.db.models.functions import Coalesce
 from django.db.models.lookups import Exact
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import User
+from django.contrib import auth
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.contenttypes.models import ContentType
 from random import random
@@ -348,12 +348,12 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
         scores_form = ScoresForm(inputs=inputs, allow_skip=cohort.allow_skip,
                                  initial=initial)
         
-        metrics = []
+        metrics, count_max = [], 0
         if inputs:
             # metrics on primary input only, for now (to ensure single row)
             metric_objs = inputs[0].metrics.filter(panelist_enabled=True)
             user_scores = Score.objects.filter(panelist=user, input=inputs[0])
-            queryset = User.objects.filter(pk=user.pk)
+            queryset = auth.get_user_model().objects.filter(pk=user.pk)
             for metric in metric_objs:
                 name = f'metric_{metric.name}'
                 annotation = metric.annotation(user_scores, panelist='pk')
@@ -366,8 +366,9 @@ class SubmissionDetailView(LoginRequiredMixin, SubmissionObjectMixin,
             metrics = [ (m, display(getattr(queryset[0], f'metric_{m.name}')))
                         for m in metric_objs ]
             count_type = Metric.MetricType.COUNT
-            count_max = max([ m[1] for m in metrics
-                              if m[0].type == count_type and m[0].count_value ])
+            metric_counts = [ m[1] for m in metrics
+                              if m[0].type == count_type and m[0].count_value ]
+            if metrics: count_max = max(metric_counts)
         
         context.update(self.presentation_context(cohort.presentation))
         context.update({
