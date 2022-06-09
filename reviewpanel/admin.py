@@ -15,7 +15,7 @@ import types
 
 from formative.admin import site
 from formative.models import Form, SubmissionRecord
-from formative.utils import get_current_site
+from formative.utils import get_current_site, user_programs
 from .forms import ReferencesFormSet, ReferenceForm, MetricForm, CohortForm, \
     CohortStatusForm, PresentationForm, MetricsExportForm, CombinedExportForm, \
     PresentationExportForm
@@ -91,17 +91,17 @@ class FormAttached:
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         
-        qs = form.base_fields['form'].queryset
         site = get_current_site(request)
-        if site:
-            form.base_fields['form'].queryset = qs.filter(program__sites=site)
+        qs = form.base_fields['form'].queryset.filter(program__sites=site)
+        form.base_fields['form'].queryset = user_programs(qs, 'program__',
+                                                          request)
         return form
     
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         site = get_current_site(request)
-        if site: queryset = queryset.filter(form__program__sites=site)
-        return queryset
+        return user_programs(queryset.filter(form__program__sites=site),
+                             'form__program__', request)
 
 
 @admin.register(Presentation, site=site)
@@ -201,15 +201,15 @@ class PanelAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         site = get_current_site(request)
-        if site: queryset = queryset.filter(program__sites=site)
-        return queryset
+        queryset = queryset.filter(program__sites=site)
+        return user_programs(queryset, 'program__', request)
     
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         
-        qs = form.base_fields['program'].queryset
         site = get_current_site(request)
-        if site: form.base_fields['program'].queryset = qs.filter(sites=site)
+        qs = form.base_fields['program'].queryset.filter(sites=site)
+        form.base_fields['program'].queryset = user_programs(qs, '', request)
         return form
     
     def get_deleted_objects(self, objs, request):
@@ -271,11 +271,13 @@ class CohortAdmin(FormAttached, admin.ModelAdmin):
         if not site: return form
         
         qs = form.base_fields['presentation'].queryset
-        qs = qs.filter(form__program__sites=site)
+        qs = user_programs(qs.filter(form__program__sites=site),
+                           'form__program__', request)
         form.base_fields['presentation'].queryset = qs
         
         qs = form.base_fields['panel'].queryset
-        form.base_fields['panel'].queryset = qs.filter(program__sites=site)
+        qs = user_programs(qs.filter(program__sites=site), 'program__', request)
+        form.base_fields['panel'].queryset = qs
         return form
     
     def save_related(self, request, form, formsets, change):
