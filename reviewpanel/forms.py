@@ -122,6 +122,17 @@ class MetricForm(forms.ModelForm):
 
 
 class CohortForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if 'presentation' in self.fields:
+            program_form = self.initial['form']
+            qs = self.fields['presentation'].queryset
+            self.fields['presentation'].queryset = qs.filter(form=program_form)
+            
+            qs = self.fields['inputs'].queryset
+            self.fields['inputs'].queryset = qs.filter(form=program_form)
+    
     def clean(self):
         cleaned_data = super().clean()
         status = cleaned_data['status']
@@ -130,6 +141,8 @@ class CohortForm(forms.ModelForm):
         if not cleaned_data['panel']:
             self.add_error('panel',
                            'Must be specified, unless cohort is inactive.')
+        if 'presentation' not in cleaned_data: return cleaned_data
+        
         if status == Cohort.Status.ACTIVE and not cleaned_data['presentation']:
             self.add_error('presentation',
                            'Must be specified for an active cohort.')
