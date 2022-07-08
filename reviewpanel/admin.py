@@ -260,6 +260,11 @@ class CohortAdmin(FormAttached, admin.ModelAdmin):
     readonly_fields = ('primary_input', 'size')
     actions = ['change_status']
     
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if obj: return fields
+        return tuple(f for f in fields if f not in ('presentation', 'inputs'))
+        
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
             if not isinstance(inline, CohortMemberInline) or obj is not None:
@@ -268,16 +273,16 @@ class CohortAdmin(FormAttached, admin.ModelAdmin):
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         site = get_current_site(request)
-        if not site: return form
+        
+        qs = form.base_fields['panel'].queryset
+        qs = user_programs(qs.filter(program__sites=site), 'program__', request)
+        form.base_fields['panel'].queryset = qs
+        if not obj: return form
         
         qs = form.base_fields['presentation'].queryset
         qs = user_programs(qs.filter(form__program__sites=site),
                            'form__program__', request)
         form.base_fields['presentation'].queryset = qs
-        
-        qs = form.base_fields['panel'].queryset
-        qs = user_programs(qs.filter(program__sites=site), 'program__', request)
-        form.base_fields['panel'].queryset = qs
         return form
     
     def save_related(self, request, form, formsets, change):

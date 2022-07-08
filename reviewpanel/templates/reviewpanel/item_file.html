@@ -22,7 +22,7 @@
     </audio>
   {% elif type == 'document' %}
     <object class="item_document" data="{{ file.url }}" type="application/pdf">
-      Your browser does not support PDF.
+  Your browser does not support <a href="{{ file.url }}">this PDF document</a>.
     </object>
   {% endif %}
   
