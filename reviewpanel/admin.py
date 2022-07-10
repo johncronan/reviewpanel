@@ -335,7 +335,7 @@ class ScoreTypeFilter(admin.SimpleListFilter):
 
 
 @admin.register(Score, site=site)
-class ScoreAdmin(FormAttached, admin.ModelAdmin):
+class ScoreAdmin(admin.ModelAdmin):
     list_display = ('submission', 'panelist', 'input', 'cohort', 'display_val',
                     'created')
     list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)
@@ -362,6 +362,12 @@ class ScoreAdmin(FormAttached, admin.ModelAdmin):
             qs = qs.filter(form__program__sites=site)
             form.base_fields[name].queryset = qs
         return form
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        return user_programs(queryset.filter(form__program__sites=site),
+                             'form__program__', request)
     
     @admin.display(ordering='value', description='value')
     def display_val(self, obj):
