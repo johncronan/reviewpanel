@@ -175,7 +175,8 @@ class FormView(LoginRequiredMixin, generic.RedirectView, FormObjectMixin):
             return reverse(URL_PREFIX + 'submission_skips', kwargs=kwargs)
         
         unscored = None
-        try: unscored = Score.objects.get(panelist=user, value=None)
+        try: unscored = Score.objects.get(panelist=user, value=None,
+                                          cohort__in=active_cohorts)
         except Score.DoesNotExist: pass
         
         if unscored: cohort, unscored_id = unscored.cohort, unscored.object_id

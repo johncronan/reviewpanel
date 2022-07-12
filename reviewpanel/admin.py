@@ -43,6 +43,12 @@ class TemplateAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
+        
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        return user_programs(queryset.filter(program__sites=site),
+                             'program__', request)
 
 
 class ReferenceInline(admin.StackedInline):
@@ -335,7 +341,7 @@ class ScoreTypeFilter(admin.SimpleListFilter):
 
 
 @admin.register(Score, site=site)
-class ScoreAdmin(FormAttached, admin.ModelAdmin):
+class ScoreAdmin(admin.ModelAdmin):
     list_display = ('submission', 'panelist', 'input', 'cohort', 'display_val',
                     'created')
     list_filter = ('panelist', 'input', 'cohort', 'form', ScoreTypeFilter)
@@ -362,6 +368,12 @@ class ScoreAdmin(FormAttached, admin.ModelAdmin):
             qs = qs.filter(form__program__sites=site)
             form.base_fields[name].queryset = qs
         return form
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        site = get_current_site(request)
+        return user_programs(queryset.filter(form__program__sites=site),
+                             'form__program__', request)
     
     @admin.display(ordering='value', description='value')
     def display_val(self, obj):
@@ -392,10 +404,12 @@ class ProgramFormsAdmin(admin.ModelAdmin):
     actions = ['export_ods']
     
     def has_view_permission(self, request, obj=None):
-        site = get_current_site(request)
-        if not site: return True
+        site, programs = get_current_site(request), request.user.programs
+        if request.user.is_superuser:
+            if not request.user.site: return True
+            programs = request.user.site.programs
         slug = self.model._meta.program_slug
-        return slug in site.programs.values_list('slug', flat=True)
+        return slug in programs.values_list('slug', flat=True)
     
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False
@@ -508,10 +522,12 @@ class FormSubmissionsAdmin(admin.ModelAdmin):
         return False # it's linked to by ProgramFormsAdmin, don't show in index
     
     def has_view_permission(self, request, obj=None):
-        site = get_current_site(request)
-        if not site: return True
+        site, programs = get_current_site(request), request.user.programs
+        if request.user.is_superuser:
+            if not request.user.site: return True
+            programs = request.user.site.programs
         slug = self.model._meta.program_slug
-        return slug in site.programs.values_list('slug', flat=True)
+        return slug in programs.values_list('slug', flat=True)
     
     def has_add_permission(self, request): return False
     def has_change_permission(self, request, obj=None): return False

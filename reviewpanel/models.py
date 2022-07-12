@@ -382,7 +382,8 @@ class Score(models.Model):
     objects = ScoreManager()
     
     def __str__(self):
-        name = f'{self.panelist.username} {self.input.name} '
+        if not self.panelist: name = f'[deleted] {self.input.name}'
+        else: name = f'{self.panelist.username} {self.input.name} '
         if self.value is None: return name + 'placeholder'
         elif not self.value: return name + 'skip'
         elif self.input.type == Input.InputType.TEXT: return name + 'score'
