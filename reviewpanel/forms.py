@@ -108,7 +108,7 @@ class MetricForm(forms.ModelForm):
     def __init__(self, site=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        if site:
+        if site: # TODO need user, not site, here; handle superuser flag
             qs = self.fields['cohort'].queryset
             qs = qs.filter(form__program__sites=site)
             self.fields['cohort'].queryset = qs
