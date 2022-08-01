@@ -512,7 +512,7 @@ class CohortListFilter(admin.SimpleListFilter):
 
 
 class FormSubmissionsAdmin(admin.ModelAdmin):
-    list_display = ('submission_id', '_created', '_submitted')
+    list_display = ('submission_id', '_submitted')
     list_filter = (CohortListFilter,)
     list_per_page = 400
     inlines = [SubmissionScoresInline]
