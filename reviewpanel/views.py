@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib import auth
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
 from random import random
 
 from formative.models import Program, Form
@@ -412,11 +413,12 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
     def form_valid(self, form):
         user, program_form = self.request.user, self.cohort.form
         
-        score = None
+        score, pri_input = None, None
         for i, input in enumerate(self.inputs):
             ctype = ContentType.objects.get_for_model(program_form.model)
             args = {'content_type': ctype, 'form': program_form}
             python_val, args['text'] = form.cleaned_data[input.name], ''
+            args['created'] = timezone.now()
             if input.type == Input.InputType.TEXT:
                 args['value'], args['text'] = int(bool(python_val)), python_val
             else: args['value'] = int(python_val)
@@ -424,12 +426,15 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
             kwargs = {'panelist': user, 'object_id': self.submission.pk,
                       'cohort': self.cohort, 'input': input}
             if not i:
+                pri_input = input
                 program_form, id = self.cohort.form, self.submission.pk
                 try: score = Score.objects.get(**kwargs)
                 except Score.DoesNotExist: return HttpResponseBadRequest()
                 
-                score.value, score.text = args['value'], args['text']
-                score.save()
+                if score.value != args['value'] or score.text != args['text']:
+                    score.created = args['created']
+                    score.value, score.text = args['value'], args['text']
+                    score.save()
             elif input.type == Input.InputType.TEXT and not python_val:
                 Score.objects.filter(**kwargs).delete()
             else: Score.objects.update_or_create(defaults=args, **kwargs)
@@ -437,7 +442,8 @@ class ScoresFormView(LoginRequiredMixin, SubmissionObjectMixin,
         request = self.request
         nav = 'prev_scored' in request.POST or 'next_scored' in request.POST
         if nav and not self.skips:
-            qs = Score.objects.filter(panelist=user, form=program_form)
+            qs = Score.objects.filter(panelist=user, form=program_form,
+                                      input=pri_input)
             previous = 'prev_scored' in request.POST
             target = self.navigate_history(qs, score, prev=previous)
             
