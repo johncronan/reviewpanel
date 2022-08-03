@@ -160,7 +160,7 @@ class MetricInline(admin.StackedInline):
 class InputAdmin(FormAttached, admin.ModelAdmin):
     list_display = ('name', 'form')
     list_filter = ('form',)
-    exclude = ('_rank',)
+    exclude = ('_rank', 'show_in_index') # show_in_index not yet implemented
     inlines = [MetricInline]
     
     def get_formset_kwargs(self, request, obj=None, *args):
