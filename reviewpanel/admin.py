@@ -330,10 +330,12 @@ class CohortAdmin(FormAttached, admin.ModelAdmin):
         form = super().get_form(request, obj, **kwargs)
         site = get_current_site(request)
         
-        qs = form.base_fields['panel'].queryset
-        qs = user_programs(qs.filter(program__sites=site), 'program__', request)
-        form.base_fields['panel'].queryset = qs
+        pf = form.base_fields['panel']
+        qs = user_programs(pf.queryset.filter(program__sites=site), 'program__',
+                           request)
+        pf.queryset = qs
         if not obj: return form
+        else: pf.queryset = qs.filter(program=obj.form.program)
         
         qs = form.base_fields['presentation'].queryset
         qs = user_programs(qs.filter(form__program__sites=site),

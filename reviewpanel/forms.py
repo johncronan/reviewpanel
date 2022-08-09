@@ -136,16 +136,16 @@ class CohortForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         status = cleaned_data['status']
-        if status == Cohort.Status.INACTIVE: return cleaned_data
         
-        if not cleaned_data['panel']:
+        if status != Cohort.Status.INACTIVE and not cleaned_data['panel']:
             self.add_error('panel',
                            'Must be specified, unless cohort is inactive.')
-        if 'presentation' not in cleaned_data: return cleaned_data
+        elif 'form' in cleaned_data and cleaned_data['panel']:
+            if cleaned_data['panel'].program != cleaned_data['form'].program:
+                self.add_error('panel',
+                               "Panel is not from this form's program.")
+        if status == Cohort.Status.INACTIVE: return cleaned_data
         
-        if status == Cohort.Status.ACTIVE and not cleaned_data['presentation']:
-            self.add_error('presentation',
-                           'Must be specified for an active cohort.')
         if status == Cohort.Status.ACTIVE:
             if not cleaned_data['inputs']:
                 self.add_error('inputs', 'There has to be a primary input.')
@@ -156,6 +156,11 @@ class CohortForm(forms.ModelForm):
                 if not primary or primary[0].type == Input.InputType.TEXT:
                     self.add_error('inputs',
                                    "Primary input can't be a text input.")
+        
+        if 'presentation' not in cleaned_data: return cleaned_data
+        if status == Cohort.Status.ACTIVE and not cleaned_data['presentation']:
+            self.add_error('presentation',
+                           'Must be specified for an active cohort.')
         return cleaned_data
 
 
