@@ -98,6 +98,7 @@ class FormAttached:
         form = super().get_form(request, obj, **kwargs)
         
         site = get_current_site(request)
+        if 'form' not in form.base_fields: return form
         qs = form.base_fields['form'].queryset.filter(program__sites=site)
         form.base_fields['form'].queryset = user_programs(qs, 'program__',
                                                           request)
@@ -167,6 +168,17 @@ class InputAdmin(FormAttached, admin.ModelAdmin):
         kwargs = super().get_formset_kwargs(request, obj, *args)
         kwargs['site'] = get_current_site(request)
         return kwargs
+    
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.cohorts.filter(status=Cohort.Status.ACTIVE).exists():
+            return False
+        return super().has_delete_permission(request, obj)
+    
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        if obj and obj.cohorts.filter(status=Cohort.Status.ACTIVE).exists():
+            return ('form', 'type') + fields
+        return fields
 
 
 @admin.action(description='Add users to panel')
