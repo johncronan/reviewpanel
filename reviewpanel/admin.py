@@ -203,6 +203,7 @@ class PanelAdmin(admin.ModelAdmin):
     list_filter = ('program',)
     inlines = [PanelistInline]
     exclude = ('panelists',)
+    readonly_fields = ('enabled_panelists',)
     
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -225,6 +226,9 @@ class PanelAdmin(admin.ModelAdmin):
             for cohort in obj.cohorts.exclude(status=Cohort.Status.INACTIVE):
                 protected.append(cohort)
         return to_del, models, perms, protected
+    
+    def enabled_panelists(self, obj):
+        return obj.panelists.filter(is_active=True).count()
 
 
 class CohortMemberInline(TabularInlinePaginated):
