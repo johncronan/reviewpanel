@@ -1,0 +1,17 @@
+{% extends "admin/submit_line.html" %}
+{% load utils %}
+
+{% block extra-actions %}
+
+{% if show_save and not add and not is_popup %}
+  <div class="form-group">
+    <input type="submit" class="btn btn-outline-danger form-control"
+           value="Make panelists active" name="_activate"/>
+  </div>
+  <div class="form-group">
+    <input type="submit" class="btn btn-outline-danger form-control"
+           value="Make panelists inactive" name="_inactivate"/>
+  </div>
+{% endif %}
+
+{% endblock %}
