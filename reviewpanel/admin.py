@@ -229,6 +229,40 @@ class PanelAdmin(admin.ModelAdmin):
     
     def enabled_panelists(self, obj):
         return obj.panelists.filter(is_active=True).count()
+    
+    def change_view(self, request, object_id, **kwargs):
+        action = None
+        if '_activate_confirmed' in request.POST: action = 'activate'
+        elif '_inactivate_confirmed' in request.POST: action = 'inactivate'
+        if not action: return super().change_view(request, object_id, **kwargs)
+        
+        obj = self.get_object(request, object_id)
+        if action == 'activate': status = True
+        else: status = False
+        obj.panelists.filter(is_staff=False).update(is_active=status)
+        
+        self.log_change(request, obj, 'panelists ' + action + 'd')
+        return HttpResponseRedirect(request.get_full_path())
+    
+    def log_change(self, request, obj, message):
+        if not message: return
+        return super().log_change(request, obj, message)
+    
+    def response_change(self, request, obj):
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta, 'media': self.media, 'object': obj,
+            'title': 'Confirmation'
+        }
+        if '_activate' in request.POST or '_inactivate' in request.POST:
+            template_name = 'admin/reviewpanel/panelists_confirmation.html'
+            request.current_app = self.admin_site.name
+            if '_activate' in request.POST: context['activate'] = True
+            else: context['inactivate'] = True
+            
+            return TemplateResponse(request, template_name, context)
+        
+        return super().response_change(request, obj)
 
 
 class CohortMemberInline(TabularInlinePaginated):

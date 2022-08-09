@@ -1,0 +1,27 @@
+{% extends "admin/formative/confirmation.html" %}
+
+{% block cardtitle %}Confirm Action{% endblock %}
+
+{% block cardcontent %}
+    <p>
+      This will make all panelists {% if inactivate %}in{% endif %}active.
+      Please confirm.
+    </p>
+    <p>Note: does not apply to staff users.</p>
+    {{ form.as_p }}
+{% endblock %}
+
+{% block formcontrols %}
+    <div class="form-group">
+      <input type="submit"
+             name="_{% if inactivate %}in{% endif %}activate_confirmed"
+             class="btn {{ jazzmin_ui.button_classes.primary }}
+                    form-control" value="Yes, I'm sure" %}">
+    </div>
+    <div class="form-group">
+      <a href="#" class="btn {{ jazzmin_ui.button_classes.primary }}
+                         cancel-link form-control">
+        No, take me back
+      </a>
+    </div>
+{% endblock %}
