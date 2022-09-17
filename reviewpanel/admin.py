@@ -47,8 +47,12 @@ class TemplateAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         site = get_current_site(request)
-        return user_programs(queryset.filter(program__sites=site),
-                             'program__', request)
+        return user_programs(queryset.filter(Q(program__sites=site) |
+                                           Q(program__isnull=True)),
+                             'program__', request,
+                             or_cond=Q(program__isnull=True))
+    
+    # TODO can only create/update without a program if superuser has no site
 
 
 class ReferenceInline(admin.StackedInline):
