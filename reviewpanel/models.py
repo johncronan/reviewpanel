@@ -24,7 +24,7 @@ class Template(models.Model):
                              name='unique_program_slug')
         ]
     
-    program = models.ForeignKey(Program, models.CASCADE,
+    program = models.ForeignKey(Program, models.CASCADE, null=True, blank=True,
                                 related_name='templates',
                                 related_query_name='template')
     name = models.SlugField(max_length=32, allow_unicode=True,
