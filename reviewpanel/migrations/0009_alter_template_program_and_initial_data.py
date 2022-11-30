@@ -12,7 +12,7 @@ def delete_initial_data(apps, schema_editor):
 def create_initial_data(apps, schema_editor):
     Template = rp_model(apps, 'Template')
     TemplateSection = rp_model(apps, 'TemplateSection')
-    delete_initial_data(apps, schema_editor)
+    if Template.objects.filter(name='two_column').exists(): return
     
     t = Template(name='two_column', min_width=720, max_width=1600)
     t.save()
